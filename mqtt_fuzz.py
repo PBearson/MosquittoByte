@@ -122,6 +122,7 @@ def main(argv):
 
 
     print("Hello fellow fuzzer :)")
+    print("Host: %s, Port: %d" % (host, port))
     print("Base seed: ", seed)
 
     if(args.params_only):
