@@ -1,18 +1,13 @@
 import socket
 import random
-import os
 import time
 import sys
+import math
 
 host = "127.0.0.1"
 port = 1883
 
-params = {"min_mutate": 0, "max_mutate": 100}
-fuzz_delay = 0.05
-
-# connect_payload = b'\x10\x0c\x00\x04MQTT\x04\x02\x00<\x00\x00'
-# publish_payload = b'0\x08\x00\x04testhi'
-# disconnect_payload = b'\xe0\x00'
+fuzz_delay = 0.5
 
 # Add bytes in a string
 # f : the fuzzable object
@@ -51,11 +46,17 @@ def fuzz_target(f, params):
     
     return f
 
+def set_params(seed):
+    params = {"min_mutate": 0, "max_mutate": 100}
+    return params
+
 # Fuzz MQTT
 # params: A dictionary with various parameters
-def fuzz(params, seed):
+def fuzz(seed):
 
     random.seed(seed)
+
+    params = set_params(seed)
 
     fuzzable = ["CONNECT", "PUBLISH", "DISCONNECT"]
 
@@ -92,8 +93,8 @@ def fuzz(params, seed):
 # - Look at the server output as we fuzz
 # - Adapt to output
 
-seed = 0
+seed = math.floor(time.time())
 while True:
-    fuzz(params, seed)
+    fuzz(seed)
     time.sleep(fuzz_delay)
     seed += 1
