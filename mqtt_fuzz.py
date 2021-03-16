@@ -2,12 +2,8 @@ import socket
 import random
 import time
 import sys
+import argparse
 import math
-
-host = "127.0.0.1"
-port = 1883
-
-fuzz_delay = 0.5
 
 # Add bytes in a string
 # f : the fuzzable object
@@ -46,8 +42,12 @@ def fuzz_target(f, params):
     
     return f
 
-def set_params(seed):
-    params = {"min_mutate": 0, "max_mutate": 100}
+def get_params(seed):
+    mutate_a = random.randint(0, 100)
+    mutate_b = random.randint(0, 100)
+    min_mutate = min(mutate_a, mutate_b)
+    max_mutate = max(mutate_a, mutate_b)
+    params = {"min_mutate": min_mutate, "max_mutate": max_mutate}
     return params
 
 # Fuzz MQTT
@@ -56,7 +56,7 @@ def fuzz(seed):
 
     random.seed(seed)
 
-    params = set_params(seed)
+    params = get_params(seed)
 
     fuzzable = ["CONNECT", "PUBLISH", "DISCONNECT"]
 
@@ -87,14 +87,54 @@ def fuzz(seed):
     s.connect((host, port))
     s.send(payload)
     s.close()
-    
 
-# TODO:
-# - Look at the server output as we fuzz
-# - Adapt to output
+def main(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
+    parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
+    parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
+    parser.add_argument("-f", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
+    parser.add_argument("-p", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
 
-seed = math.floor(time.time())
-while True:
-    fuzz(seed)
-    time.sleep(fuzz_delay)
-    seed += 1
+    args = parser.parse_args()
+
+    global host, port
+
+    if(args.host):
+        host = args.host
+    else:
+        host = "localhost"
+
+    if(args.port):
+        port = int(args.port)
+    else:
+        port = 1883
+
+    if(args.seed):  
+        seed = int(args.seed)
+    else:
+        seed = math.floor(time.time())
+
+    if(args.fuzz_delay):
+        fuzz_delay = float(args.fuzz_delay)
+    else:
+        fuzz_delay = 0.1
+
+
+    print("Hello fellow fuzzer :)")
+    print("Base seed: ", seed)
+
+    if(args.params_only):
+        random.seed(seed)
+        params = get_params(seed)
+        print("Your params: ", params)
+        exit()
+
+    while True:
+        fuzz(seed)
+        time.sleep(fuzz_delay)
+        seed += 1
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
