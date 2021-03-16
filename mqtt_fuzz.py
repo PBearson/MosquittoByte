@@ -33,7 +33,7 @@ def get_payload(file):
     packets = f.read().splitlines()
     selection = random.choice(packets)
     f.close()
-    return bytearray.fromhex(selection)#encode(errors='ignore').encode()
+    return bytearray.fromhex(selection)
 
 def fuzz_target(f, params):
     minm = params["min_mutate"]
