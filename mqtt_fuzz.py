@@ -158,7 +158,7 @@ def main(argv):
     parser.add_argument("-f", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
     parser.add_argument("-m", "--max_runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
     parser.add_argument("-i", "--intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
-    parser.add_argument("-ai", "--autonomous_intensity", help = "If set, the intensity randomly changes every 1000 runs", action="store_true")
+    parser.add_argument("-a", "--autonomous_intensity", help = "If set, the intensity randomly changes every 1000 runs", action="store_true")
     parser.add_argument("-p", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
 
     args = parser.parse_args()
