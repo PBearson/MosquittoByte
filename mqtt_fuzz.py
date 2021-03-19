@@ -73,7 +73,8 @@ def fuzz_target(f, params):
     # Randomize which operations we do
     fuzz_opts = ["mutate", "add", "remove"]
 
-    for fr in range(params["fuzz_rounds"]):
+    fuzz_rounds = random.randint(params["min_fuzz_rounds"], params["max_fuzz_rounds"])
+    for fr in range(fuzz_rounds):
         fuzz_selection = random.sample(fuzz_opts, random.randint(1, 3))
         for s in fuzz_selection:
             if s == "mutate":
@@ -98,7 +99,7 @@ def get_params():
     super_add_min, super_add_max = get_min_max(0, 10000)
     super_add_enable = random.randint(0, 30)
     min_remove, max_remove = get_min_max(0, 100)
-    fuzz_rounds = random.randint(0, 5)
+    min_fuzz_rounds, max_fuzz_rounds = get_min_max(0, 10)
 
     params = {
         "min_mutate": min_mutate, 
@@ -110,7 +111,8 @@ def get_params():
         "super_add_max": super_add_max,
         "min_remove": min_remove,
         "max_remove": max_remove,
-        "fuzz_rounds": fuzz_rounds
+        "min_fuzz_rounds": min_fuzz_rounds,
+        "max_fuzz_rounds": max_fuzz_rounds
         }
     return params
 
