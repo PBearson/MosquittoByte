@@ -9,7 +9,10 @@ import math
 # f : the fuzzable object
 # nb : the number of bytes to remove in f
 def remove(f, nb):
-    print("Removing %d bytes" % nb)
+    for n in range(nb):
+        base = random.randint(0, len(f))
+        f = f[0:base] + f[base + 1:]
+
     return f
 
 # Add bytes in a string
@@ -67,8 +70,8 @@ def fuzz_target(f, params):
     # Get number of bytes to remove
     num_remove_bytes = select_param_value(f, params["min_remove"], params["max_remove"])
 
-    # f = mutate(f, num_mutate_bytes)
-    # f = add(f, num_add_bytes)
+    f = mutate(f, num_mutate_bytes)
+    f = add(f, num_add_bytes)
     f = remove(f, num_remove_bytes)
     
     return f
@@ -114,10 +117,6 @@ def fuzz(seed):
     connect_payload = get_payload("mqtt_corpus/CONNECT")
     publish_payload = get_payload("mqtt_corpus/PUBLISH")
     disconnect_payload = get_payload("mqtt_corpus/DISCONNECT")
-    payload = connect_payload + publish_payload + disconnect_payload
-
-    print(payload)
-    print(len(payload))
 
     for f in fuzzable:
         min_mutate = params["min_mutate"]
@@ -137,7 +136,6 @@ def fuzz(seed):
 
     payload = connect_payload + publish_payload + disconnect_payload
     print(payload)
-    print(len(payload))
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
