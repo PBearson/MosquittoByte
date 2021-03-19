@@ -97,7 +97,7 @@ def get_params():
     min_mutate, max_mutate = get_min_max(0, 10 * intensity)
     min_add, max_add = get_min_max(0, 10 * intensity)
     super_add_min, super_add_max = get_min_max(0, 1000 * intensity)
-    super_add_enable = random.randint(0, 30)
+    super_add_enable = random.randint(0, 50)
     min_remove, max_remove = get_min_max(0, 10 * intensity)
     min_fuzz_rounds, max_fuzz_rounds = get_min_max(0, intensity)
 
