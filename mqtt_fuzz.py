@@ -137,9 +137,6 @@ def fuzz(seed):
         "disconnect": get_payload("mqtt_corpus/DISCONNECT")
     }
 
-    payload = construct_payload(all_payloads)
-    print(payload)
-
     all_payloads["connect"] = fuzz_target(all_payloads["connect"], params)
     all_payloads["auth"] = fuzz_target(all_payloads["auth"], params)
     all_payloads["publish"] = fuzz_target(all_payloads["publish"], params)
@@ -159,8 +156,9 @@ def main(argv):
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-f", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
-    parser.add_argument("-r", "--runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
+    parser.add_argument("-m", "--max_runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
     parser.add_argument("-i", "--intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
+    parser.add_argument("-ai", "--autonomous_intensity", help = "If set, the intensity randomly changes every 1000 runs", action="store_true")
     parser.add_argument("-p", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
 
     args = parser.parse_args()
@@ -196,8 +194,13 @@ def main(argv):
     else:
         intensity = 3
 
-    if(args.runs):
-        runs = int(args.runs)
+    if(args.max_runs):
+        max_runs = int(args.max_runs)
+
+    if(args.autonomous_intensity):
+        autonomous_intensity = True
+    else:
+        autonomous_intensity = False
 
 
     print("Hello fellow fuzzer :)")
@@ -211,14 +214,20 @@ def main(argv):
         print("Your params: ", params)
         exit()
 
+    total_runs = 0
     while True:
         fuzz(seed)
         time.sleep(fuzz_delay)
+        total_runs += 1
         seed += 1
-        if 'runs' in locals():
-            runs -= 1
-            if runs <= 0:
+        if 'max_runs' in locals():
+            max_runs -= 1
+            if max_runs <= 0:
                 break
+
+        if total_runs % 1000 == 0 and autonomous_intensity:
+            intensity = (intensity + 1) % 11
+            print("Changed intensity to", intensity)
 
 
 if __name__ == "__main__":
