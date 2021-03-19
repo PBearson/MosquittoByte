@@ -94,6 +94,7 @@ def main(argv):
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-f", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
+    parser.add_argument("-r", "--runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
     parser.add_argument("-p", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
 
     args = parser.parse_args()
@@ -120,6 +121,9 @@ def main(argv):
     else:
         fuzz_delay = 0.1
 
+    if(args.runs):
+        runs = int(args.runs)
+
 
     print("Hello fellow fuzzer :)")
     print("Host: %s, Port: %d" % (host, port))
@@ -135,6 +139,10 @@ def main(argv):
         fuzz(seed)
         time.sleep(fuzz_delay)
         seed += 1
+        if 'runs' in locals():
+            runs -= 1
+            if runs <= 0:
+                break
 
 
 if __name__ == "__main__":
