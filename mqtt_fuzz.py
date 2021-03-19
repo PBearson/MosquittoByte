@@ -5,6 +5,13 @@ import sys
 import argparse
 import math
 
+# Remove bytes in a string
+# f : the fuzzable object
+# nb : the number of bytes to remove in f
+def remove(f, nb):
+    print("Removing %d bytes" % nb)
+    return f
+
 # Add bytes in a string
 # f : the fuzzable object
 # nb : the number of bytes to add to f
@@ -48,15 +55,21 @@ def select_param_value(f, a, b):
     return c
 
 def fuzz_target(f, params):
+    # Get number of bytes to mutate
     num_mutate_bytes = select_param_value(f, params["min_mutate"], params["max_mutate"])
 
+    # Get number of bytes to add
     if params["super_add_enable"] == 0:
         num_add_bytes = random.randint(params["super_add_min"], params["super_add_max"])
     else:
         num_add_bytes = select_param_value(f, params["min_add"], params["max_add"])
 
-    f = mutate(f, num_mutate_bytes)
-    f = add(f, num_add_bytes)
+    # Get number of bytes to remove
+    num_remove_bytes = select_param_value(f, params["min_remove"], params["max_remove"])
+
+    # f = mutate(f, num_mutate_bytes)
+    # f = add(f, num_add_bytes)
+    f = remove(f, num_remove_bytes)
     
     return f
 
@@ -73,6 +86,7 @@ def get_params():
     min_add, max_add = get_min_max(0, 100)
     super_add_min, super_add_max = get_min_max(0, 10000)
     super_add_enable = random.randint(0, 30)
+    min_remove, max_remove = get_min_max(0, 100)
 
     params = {
         "min_mutate": min_mutate, 
@@ -81,7 +95,10 @@ def get_params():
         "max_add": max_add, 
         "super_add_enable": super_add_enable, 
         "super_add_min": super_add_min,
-        "super_add_max": super_add_max}
+        "super_add_max": super_add_max,
+        "min_remove": min_remove,
+        "max_remove": max_remove
+        }
     return params
 
 # Fuzz MQTT
