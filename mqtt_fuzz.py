@@ -70,10 +70,18 @@ def fuzz_target(f, params):
     # Get number of bytes to remove
     num_remove_bytes = select_param_value(f, params["min_remove"], params["max_remove"])
 
-    f = mutate(f, num_mutate_bytes)
-    f = add(f, num_add_bytes)
-    f = remove(f, num_remove_bytes)
-    
+    # Randomize which operations we do
+    fuzz_opts = ["mutate", "add", "remove"]
+
+    for fr in range(params["fuzz_rounds"]):
+        fuzz_selection = random.sample(fuzz_opts, random.randint(1, 3))
+        for s in fuzz_selection:
+            if s == "mutate":
+                f = mutate(f, num_mutate_bytes)
+            elif s == "add":
+                f = add(f, num_add_bytes)
+            elif s == "remove":
+                f = remove(f, num_remove_bytes)
     return f
 
 # Return a tuple (a, b) where a and b are between abs_min and abs_max and a <= b
@@ -90,6 +98,7 @@ def get_params():
     super_add_min, super_add_max = get_min_max(0, 10000)
     super_add_enable = random.randint(0, 30)
     min_remove, max_remove = get_min_max(0, 100)
+    fuzz_rounds = random.randint(0, 5)
 
     params = {
         "min_mutate": min_mutate, 
@@ -100,7 +109,8 @@ def get_params():
         "super_add_min": super_add_min,
         "super_add_max": super_add_max,
         "min_remove": min_remove,
-        "max_remove": max_remove
+        "max_remove": max_remove,
+        "fuzz_rounds": fuzz_rounds
         }
     return params
 
@@ -120,11 +130,16 @@ def fuzz(seed):
 
     all_payloads = {
         "connect": get_payload("mqtt_corpus/CONNECT"),
+        "auth": get_payload("mqtt_corpus/AUTH"),
         "publish": get_payload("mqtt_corpus/PUBLISH"),
         "disconnect": get_payload("mqtt_corpus/DISCONNECT")
     }
 
+    payload = construct_payload(all_payloads)
+    print(payload)
+
     all_payloads["connect"] = fuzz_target(all_payloads["connect"], params)
+    all_payloads["auth"] = fuzz_target(all_payloads["auth"], params)
     all_payloads["publish"] = fuzz_target(all_payloads["publish"], params)
     all_payloads["disconnect"] = fuzz_target(all_payloads["disconnect"], params)
 
