@@ -94,12 +94,12 @@ def get_min_max(abs_min, abs_max):
     return (b, a)
 
 def get_params():
-    min_mutate, max_mutate = get_min_max(0, 100)
-    min_add, max_add = get_min_max(0, 100)
-    super_add_min, super_add_max = get_min_max(0, 10000)
+    min_mutate, max_mutate = get_min_max(0, 10 * intensity)
+    min_add, max_add = get_min_max(0, 10 * intensity)
+    super_add_min, super_add_max = get_min_max(0, 1000 * intensity)
     super_add_enable = random.randint(0, 30)
-    min_remove, max_remove = get_min_max(0, 100)
-    min_fuzz_rounds, max_fuzz_rounds = get_min_max(0, 10)
+    min_remove, max_remove = get_min_max(0, 10 * intensity)
+    min_fuzz_rounds, max_fuzz_rounds = get_min_max(0, intensity)
 
     params = {
         "min_mutate": min_mutate, 
@@ -160,11 +160,12 @@ def main(argv):
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-f", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
     parser.add_argument("-r", "--runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
+    parser.add_argument("-i", "--intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
     parser.add_argument("-p", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
 
     args = parser.parse_args()
 
-    global host, port
+    global host, port, intensity
 
     if(args.host):
         host = args.host
@@ -186,6 +187,15 @@ def main(argv):
     else:
         fuzz_delay = 0.1
 
+    if(args.intensity):
+        intensity = int(args.intensity)
+        if intensity > 10:
+            intensity = 10
+        if intensity < 0:
+            intensity = 0
+    else:
+        intensity = 3
+
     if(args.runs):
         runs = int(args.runs)
 
@@ -193,6 +203,7 @@ def main(argv):
     print("Hello fellow fuzzer :)")
     print("Host: %s, Port: %d" % (host, port))
     print("Base seed: ", seed)
+    print("Intensity: ", intensity)
 
     if(args.params_only):
         random.seed(seed)
