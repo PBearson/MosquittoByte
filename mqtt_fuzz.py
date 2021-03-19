@@ -104,6 +104,12 @@ def get_params():
         }
     return params
 
+def construct_payload(all_payloads):
+    # TODO
+    payload = all_payloads["connect"] + all_payloads["publish"] + all_payloads["disconnect"]
+    return payload
+    
+
 # Fuzz MQTT
 # params: A dictionary with various parameters
 def fuzz(seed):
@@ -112,29 +118,17 @@ def fuzz(seed):
 
     params = get_params()
 
-    fuzzable = ["CONNECT", "PUBLISH", "DISCONNECT"]
+    all_payloads = {
+        "connect": get_payload("mqtt_corpus/CONNECT"),
+        "publish": get_payload("mqtt_corpus/PUBLISH"),
+        "disconnect": get_payload("mqtt_corpus/DISCONNECT")
+    }
 
-    connect_payload = get_payload("mqtt_corpus/CONNECT")
-    publish_payload = get_payload("mqtt_corpus/PUBLISH")
-    disconnect_payload = get_payload("mqtt_corpus/DISCONNECT")
+    all_payloads["connect"] = fuzz_target(all_payloads["connect"], params)
+    all_payloads["publish"] = fuzz_target(all_payloads["publish"], params)
+    all_payloads["disconnect"] = fuzz_target(all_payloads["disconnect"], params)
 
-    for f in fuzzable:
-        min_mutate = params["min_mutate"]
-        max_mutate = params["max_mutate"]
-
-        if f == "CONNECT":
-            connect_payload = fuzz_target(connect_payload, params)
-
-        elif f == "PUBLISH":
-            publish_payload = fuzz_target(publish_payload, params)
-        
-        elif f == "DISCONNECT":
-            disconnect_payload = fuzz_target(disconnect_payload, params)
-
-        else:
-            raise Exception("Error: %s is not a valid fuzz target" % f)
-
-    payload = connect_payload + publish_payload + disconnect_payload
+    payload = construct_payload(all_payloads)
     print(payload)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
