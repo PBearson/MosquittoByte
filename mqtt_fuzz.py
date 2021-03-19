@@ -9,7 +9,11 @@ import math
 # f : the fuzzable object
 # nb : the number of bytes to add to f
 def add(f, nb):
-    bits = random.sample(range(len(f)), min(nb, len(f)))
+    for n in range(nb):
+        base = random.randint(0, len(f))
+        byte = random.getrandbits(8).to_bytes(1, sys.byteorder)
+        f = f[0:base] + byte + f[base:]
+
     return f
 
 # Mutate bytes in a string
@@ -31,23 +35,53 @@ def get_payload(file):
     f.close()
     return bytearray.fromhex(selection)
 
-def fuzz_target(f, params):
-    minm = params["min_mutate"]
-    maxm = params["max_mutate"]
-    if minm == maxm:
-        num_mutate_bytes = round(minm / 100) * len(f)
+# Return c / 100 * len(f), where c is a random number between a and b
+# a : a number between 0 and 100
+# b : a number between a and 100
+# f : the fuzzable object 
+def select_param_value(f, a, b):
+    if a == b:
+        c = round(a / 100 * len(f))
     else:
-        num_mutate_bytes = round(random.choice(range(minm, maxm)) / 100 * len(f))
+        c = random.choice(range(a, b))
+        c = round(c / 100 * len(f))
+    return c
+
+def fuzz_target(f, params):
+    num_mutate_bytes = select_param_value(f, params["min_mutate"], params["max_mutate"])
+
+    if params["super_add_enable"] == 0:
+        num_add_bytes = random.randint(params["super_add_min"], params["super_add_max"])
+    else:
+        num_add_bytes = select_param_value(f, params["min_add"], params["max_add"])
+
     f = mutate(f, num_mutate_bytes)
+    f = add(f, num_add_bytes)
     
     return f
 
-def get_params(seed):
-    mutate_a = random.randint(0, 100)
-    mutate_b = random.randint(0, 100)
-    min_mutate = min(mutate_a, mutate_b)
-    max_mutate = max(mutate_a, mutate_b)
-    params = {"min_mutate": min_mutate, "max_mutate": max_mutate}
+# Return a tuple (a, b) where a and b are between abs_min and abs_max and a <= b
+def get_min_max(abs_min, abs_max):
+    a = random.randint(abs_min, abs_max)
+    b = random.randint(abs_min, abs_max)
+    if a < b:
+        return (a, b)
+    return (b, a)
+
+def get_params():
+    min_mutate, max_mutate = get_min_max(0, 100)
+    min_add, max_add = get_min_max(0, 100)
+    super_add_min, super_add_max = get_min_max(0, 10000)
+    super_add_enable = random.randint(0, 30)
+
+    params = {
+        "min_mutate": min_mutate, 
+        "max_mutate": max_mutate, 
+        "min_add": min_add, 
+        "max_add": max_add, 
+        "super_add_enable": super_add_enable, 
+        "super_add_min": super_add_min,
+        "super_add_max": super_add_max}
     return params
 
 # Fuzz MQTT
@@ -56,13 +90,17 @@ def fuzz(seed):
 
     random.seed(seed)
 
-    params = get_params(seed)
+    params = get_params()
 
     fuzzable = ["CONNECT", "PUBLISH", "DISCONNECT"]
 
     connect_payload = get_payload("mqtt_corpus/CONNECT")
     publish_payload = get_payload("mqtt_corpus/PUBLISH")
     disconnect_payload = get_payload("mqtt_corpus/DISCONNECT")
+    payload = connect_payload + publish_payload + disconnect_payload
+
+    print(payload)
+    print(len(payload))
 
     for f in fuzzable:
         min_mutate = params["min_mutate"]
@@ -82,6 +120,7 @@ def fuzz(seed):
 
     payload = connect_payload + publish_payload + disconnect_payload
     print(payload)
+    print(len(payload))
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
@@ -131,7 +170,7 @@ def main(argv):
 
     if(args.params_only):
         random.seed(seed)
-        params = get_params(seed)
+        params = get_params()
         print("Your params: ", params)
         exit()
 
