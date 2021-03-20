@@ -4,7 +4,10 @@ import time
 import sys
 import argparse
 import math
+import os.path
 import select
+
+from os import path
 
 # Remove bytes in a string
 # f : the fuzzable object
@@ -45,6 +48,16 @@ def get_payload(file):
     selection = random.choice(packets)
     f.close()
     return bytearray.fromhex(selection)
+
+def get_all_payloads():
+    all_payloads = {
+        "connect": get_payload("mqtt_corpus/CONNECT"),
+        "auth": get_payload("mqtt_corpus/AUTH"),
+        "publish": get_payload("mqtt_corpus/PUBLISH"),
+        "disconnect": get_payload("mqtt_corpus/DISCONNECT")
+    }
+    return all_payloads
+
 
 # Return c / 100 * len(f), where c is a random number between a and b
 # a : a number between 0 and 100
@@ -117,33 +130,56 @@ def get_params():
         }
     return params
 
+
+def handle_crash():
+    if "last_fuzz" not in globals():
+        print("There was an error connecting to the broker.")
+        exit()
+    else:
+
+        if not path.exists("crashes.txt"):
+            f = open("crashes.txt", "w")
+            f.write("Seed\t\tFuzz intensity\t\tConstruct intensity\t\tPayload\n")
+        print("File exists:", path.exists("crashes.txt"))
+
+        seed = last_fuzz["seed"]
+        fi = last_fuzz["fuzz_intensity"]
+        ci = last_fuzz["construct_intensity"]
+        payload = last_fuzz["payload"]
+        print("The following input crashed the program")
+        print(seed, fi, ci, payload.hex())
+        f = open("crashes.txt", "a")
+        f.write("%s\t\t%s\t\t\t\t\t%s\t\t\t\t\t\t%s\n" % (seed, fi, ci, payload.hex()))
+        f.close()
+        exit()
+
 def construct_payload(all_payloads):
     # TODO
     payload = all_payloads["connect"] + all_payloads["publish"] + all_payloads["disconnect"]
     return payload
     
+def fuzz_payloads(all_payloads, params):
+    all_payloads["connect"] = fuzz_target(all_payloads["connect"], params)
+    all_payloads["auth"] = fuzz_target(all_payloads["auth"], params)
+    all_payloads["publish"] = fuzz_target(all_payloads["publish"], params)
+    all_payloads["disconnect"] = fuzz_target(all_payloads["disconnect"], params)
+
+    return all_payloads
 
 # Fuzz MQTT
-# params: A dictionary with various parameters
 def fuzz(seed):
+
+    global last_fuzz
 
     random.seed(seed)
 
     params = get_params()
 
-    all_payloads = {
-        "connect": get_payload("mqtt_corpus/CONNECT"),
-        "auth": get_payload("mqtt_corpus/AUTH"),
-        "publish": get_payload("mqtt_corpus/PUBLISH"),
-        "disconnect": get_payload("mqtt_corpus/DISCONNECT")
-    }
-
+    all_payloads = get_all_payloads()
+   
     unfuzzed_payload = construct_payload(all_payloads)
 
-    all_payloads["connect"] = fuzz_target(all_payloads["connect"], params)
-    all_payloads["auth"] = fuzz_target(all_payloads["auth"], params)
-    all_payloads["publish"] = fuzz_target(all_payloads["publish"], params)
-    all_payloads["disconnect"] = fuzz_target(all_payloads["disconnect"], params)
+    all_payloads = fuzz_payloads(all_payloads, params)
 
     payload = construct_payload(all_payloads)
     
@@ -152,15 +188,18 @@ def fuzz(seed):
         print("\nPayload after fuzzing:\n", payload.hex())
         exit()
 
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((host, port))
+        s.send(payload)
+    except ConnectionRefusedError:
+        handle_crash()
+
     if(verbosity >= 2):
         print("Unfuzzed payload:\t", unfuzzed_payload.hex())
 
     if(verbosity >= 1):
         print("Fuzzed payload:\t\t", payload.hex())
-
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
-    s.send(payload)
 
     ready = select.select([s], [], [], response_delay)
 
@@ -168,7 +207,7 @@ def fuzz(seed):
         try:
             response = s.recv(1024)
             if verbosity >= 5:
-                print("Broker response:\t", response)
+                print("Broker response:\t", response.hex())
         except ConnectionResetError:
             if verbosity >= 4:
                 print("Error:\t\t\t Broker reset connection.")
@@ -177,13 +216,20 @@ def fuzz(seed):
             print("Error:\t\t\tBroker was not ready for reading.")
     s.close()
 
+    last_fuzz = {
+        "seed": seed,
+        "fuzz_intensity": fuzz_intensity,
+        "construct_intensity": construct_intensity,
+        "payload": payload
+    }
+
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
-    parser.add_argument("-rd", "--response_delay", help="Set the delay between sending a packet and receiving the response from the broker. Default is 0.1 seconds.")
+    parser.add_argument("-rd", "--response_delay", help="Set the delay between sending a packet and receiving the response from the broker. Default is whatever fuzz delay is set to.")
     parser.add_argument("-m", "--max_runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
     parser.add_argument("-fi", "--fuzz_intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
@@ -194,7 +240,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, fuzz_intensity, construct_payload, payload_only, verbosity, response_delay
+    global host, port, fuzz_intensity, construct_intensity, construct_payload, payload_only, verbosity, response_delay
 
     if(args.host):
         host = args.host
@@ -219,7 +265,7 @@ def main(argv):
     if(args.response_delay):
         response_delay = float(args.response_delay)
     else:
-        response_delay = 0.1
+        response_delay = fuzz_delay
 
     if(args.fuzz_intensity):
         fuzz_intensity = int(args.fuzz_intensity)
