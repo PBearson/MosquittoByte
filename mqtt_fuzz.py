@@ -130,6 +130,8 @@ def fuzz(seed):
 
     params = get_params()
 
+    
+
     all_payloads = {
         "connect": get_payload("mqtt_corpus/CONNECT"),
         "auth": get_payload("mqtt_corpus/AUTH"),
@@ -137,13 +139,19 @@ def fuzz(seed):
         "disconnect": get_payload("mqtt_corpus/DISCONNECT")
     }
 
+    unfuzzed_payload = construct_payload(all_payloads)
+
     all_payloads["connect"] = fuzz_target(all_payloads["connect"], params)
     all_payloads["auth"] = fuzz_target(all_payloads["auth"], params)
     all_payloads["publish"] = fuzz_target(all_payloads["publish"], params)
     all_payloads["disconnect"] = fuzz_target(all_payloads["disconnect"], params)
 
     payload = construct_payload(all_payloads)
-    print(payload)
+    
+    if("payload_only" in globals()):
+        print("\nPayload before fuzzing:\n", unfuzzed_payload)
+        print("\nPayload after fuzzing:\n", payload)
+        exit()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
@@ -159,11 +167,12 @@ def main(argv):
     parser.add_argument("-m", "--max_runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
     parser.add_argument("-i", "--intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the intensity randomly changes every 1000 runs", action="store_true")
-    parser.add_argument("-p", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
+    parser.add_argument("-p1", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
+    parser.add_argument("-p2", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed.", action = "store_true")
 
     args = parser.parse_args()
 
-    global host, port, intensity
+    global host, port, intensity, payload_only
 
     if(args.host):
         host = args.host
@@ -208,11 +217,17 @@ def main(argv):
     print("Base seed: ", seed)
     print("Intensity: ", intensity)
 
+    if(args.payload_only):
+        payload_only = args.payload_only
+
     if(args.params_only):
         random.seed(seed)
         params = get_params()
-        print("Your params: ", params)
-        exit()
+        print("\nYour params: ", params)
+        if(not args.payload_only):
+            exit()
+
+
 
     total_runs = 0
     while True:
