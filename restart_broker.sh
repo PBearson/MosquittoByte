@@ -1,0 +1,1 @@
+/home/kali/Documents/mosquitto/src/mosquitto > /dev/null 2>&1
