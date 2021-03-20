@@ -6,6 +6,7 @@ import argparse
 import math
 import os.path
 import select
+import subprocess
 
 from os import path
 
@@ -134,24 +135,26 @@ def get_params():
 def handle_crash():
     if "last_fuzz" not in globals():
         print("There was an error connecting to the broker.")
-        exit()
+        subprocess.Popen(["bash", "restart_broker.sh"]) 
     else:
-
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
-            f.write("Seed\t\tFuzz intensity\t\tConstruct intensity\t\tPayload\n")
-        print("File exists:", path.exists("crashes.txt"))
+            f.write("Seed, Fuzz intensity, Construct intensity, Payload\n")
 
         seed = last_fuzz["seed"]
         fi = last_fuzz["fuzz_intensity"]
         ci = last_fuzz["construct_intensity"]
         payload = last_fuzz["payload"]
-        print("The following input crashed the program")
-        print(seed, fi, ci, payload.hex())
+        if verbosity >= 1:
+            print("The following input crashed the program")
+            print(seed, fi, ci, payload.hex())
         f = open("crashes.txt", "a")
-        f.write("%s\t\t%s\t\t\t\t\t%s\t\t\t\t\t\t%s\n" % (seed, fi, ci, payload.hex()))
+        f.write("%s, %s, %s, %s\n" % (seed, fi, ci, payload.hex()))
         f.close()
-        exit()
+
+        subprocess.Popen(["bash", "restart_broker.sh"])
+        print("Waiting a second to restart the broker")
+        time.sleep(1)
 
 def construct_payload(all_payloads):
     # TODO
@@ -194,6 +197,7 @@ def fuzz(seed):
         s.send(payload)
     except ConnectionRefusedError:
         handle_crash()
+        return
 
     if(verbosity >= 2):
         print("Unfuzzed payload:\t", unfuzzed_payload.hex())
@@ -307,6 +311,7 @@ def main(argv):
     print("Host: %s, Port: %d" % (host, port))
     print("Base seed: ", seed)
     print("Fuzz Intensity: ", fuzz_intensity)
+    print("Construct intensity: ", construct_intensity)
 
     if(args.payload_only):
         payload_only = args.payload_only
