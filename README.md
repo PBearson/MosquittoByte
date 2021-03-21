@@ -1,9 +1,5 @@
 TODO track and log interesting results
 
-TODO add option to set broker script
-
-TODO add option to stop script on crash
-
 TODO need to explain parameters
 
 TODO give option for breaking down the payload packet by packet. It can be an extra option for "payload-only"
