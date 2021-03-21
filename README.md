@@ -6,4 +6,4 @@ TODO construct_intensity option:
     - intensity = 2: Same as above. Packets can be repeated up to 3 times.
     - intensity = 3: Same as above. Packets can be repeated up to 10 times, and payloads themselves can be repeated up to 5 times.
 
-TODO payloads that crash the broker should be used as input for other fuzz attempts. Just call fuzz_target on the payload we want to fuzz. Make sure duplicate packets are not saved to our log. Also, add a "sourced" option which indexes whuich payload we began with in our log.
+TODO make it so that we can pass a source input arg into the script. 
