@@ -202,8 +202,6 @@ def fuzz(seed):
         print("\nPayload after fuzzing:\t" + payload.hex())
         for p in enumerated_payloads:
             print("%s: %s" % (p, enumerated_payloads[p].hex()))
-        # print("\nPayload after fuzzing:\n", payload.hex())
-        # print(unfuzzed_enumerated_payloads)
         exit()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -256,8 +254,7 @@ def main(argv):
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
-    parser.add_argument("-p1", "--params_only", help = "Do not fuzz. Simply return the parameters based on the seed value.", action = "store_true")
-    parser.add_argument("-p2", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed.", action = "store_true")
+    parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
 
     args = parser.parse_args()
 
@@ -342,13 +339,9 @@ def main(argv):
 
     if(args.payload_only):
         payload_only = args.payload_only
-
-    if(args.params_only):
         random.seed(seed)
         params = get_params()
         print("\nYour params: ", params)
-        if(not args.payload_only):
-            exit()
 
     total_runs = 1
     while True:
