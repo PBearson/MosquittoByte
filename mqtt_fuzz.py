@@ -54,9 +54,9 @@ def get_payload(file):
 def get_all_payloads():
     all_payloads = {
         "connect": get_payload("mqtt_corpus/CONNECT"),
-        "connack": get_payload("mqtt_corpus/CONNACK"),
-        "pingreq": get_payload("mqtt_corpus/PINGREQ"),
-        "pingresp": get_payload("mqtt_corpus/PINGRESP"),
+        # "connack": get_payload("mqtt_corpus/CONNACK"),
+        # "pingreq": get_payload("mqtt_corpus/PINGREQ"),
+        # "pingresp": get_payload("mqtt_corpus/PINGRESP"),
         "auth": get_payload("mqtt_corpus/AUTH"),
         "publish": get_payload("mqtt_corpus/PUBLISH"),
         "disconnect": get_payload("mqtt_corpus/DISCONNECT")
@@ -156,9 +156,12 @@ def handle_crash():
         f.write("%s, %s, %s, %s\n" % (seed, fi, ci, payload.hex()))
         f.close()
 
-        subprocess.Popen(["bash", "restart_broker.sh"])
-        print("Waiting a second to restart the broker")
-        time.sleep(1)
+        if exit_on_crash:
+            exit()
+        else:
+            subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("Waiting a second to restart the broker")
+            time.sleep(1)
 
 def construct_payload(all_payloads):
     # TODO
@@ -233,6 +236,7 @@ def main(argv):
     parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
     parser.add_argument("-B", "--broker_exe", help = "Set the broker exe location. If the broker crashes, this can be used to restart it. Defaults to /usr/sbin/mosquitto.")
+    parser.add_argument("-e", "--exit_on_crash", help = "Stop fuzzing when the targer broker crashes. If not set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
     parser.add_argument("-rd", "--response_delay", help="Set the delay between sending a packet and receiving the response from the broker. Default is whatever fuzz delay is set to.")
@@ -246,7 +250,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, construct_payload, payload_only, verbosity, response_delay
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, construct_payload, payload_only, verbosity, response_delay, exit_on_crash
 
     if(args.host):
         host = args.host
@@ -262,6 +266,11 @@ def main(argv):
         broker_exe = args.broker_exe
     else:
         broker_exe = "/usr/sbin/mosquitto"
+
+    if(args.exit_on_crash):
+        exit_on_crash = True
+    else:
+        exit_on_crash = False
 
     if(args.seed):  
         seed = int(args.seed)
