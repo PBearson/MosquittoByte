@@ -165,8 +165,13 @@ def handle_crash():
 
 def construct_payload(all_payloads):
     # TODO
-    payload = all_payloads["connect"] + all_payloads["publish"] + all_payloads["disconnect"]
-    return payload
+    selected_payloads = ("connect", "publish", "disconnect")
+    enumerated_payloads = {}
+    payload = b""
+    for s in selected_payloads:
+        payload = payload + all_payloads[s]
+        enumerated_payloads[s] = all_payloads[s]
+    return (payload, enumerated_payloads)
     
 def fuzz_payloads(all_payloads, params):
     for a in all_payloads:
@@ -184,15 +189,21 @@ def fuzz(seed):
 
     all_payloads = get_all_payloads()
    
-    unfuzzed_payload = construct_payload(all_payloads)
+    unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
 
     all_payloads = fuzz_payloads(all_payloads, params)
 
-    payload = construct_payload(all_payloads)
+    payload, enumerated_payloads = construct_payload(all_payloads)
     
     if("payload_only" in globals()):
-        print("\nPayload before fuzzing:\n", unfuzzed_payload.hex())
-        print("\nPayload after fuzzing:\n", payload.hex())
+        print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
+        for p in unfuzzed_enumerated_payloads:
+            print("%s: %s" % (p, unfuzzed_enumerated_payloads[p].hex()))
+        print("\nPayload after fuzzing:\t" + payload.hex())
+        for p in enumerated_payloads:
+            print("%s: %s" % (p, enumerated_payloads[p].hex()))
+        # print("\nPayload after fuzzing:\n", payload.hex())
+        # print(unfuzzed_enumerated_payloads)
         exit()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
