@@ -4,6 +4,7 @@ import time
 import sys
 import argparse
 import math
+import os
 import os.path
 import select
 import subprocess
@@ -53,6 +54,9 @@ def get_payload(file):
 def get_all_payloads():
     all_payloads = {
         "connect": get_payload("mqtt_corpus/CONNECT"),
+        "connack": get_payload("mqtt_corpus/CONNACK"),
+        "pingreq": get_payload("mqtt_corpus/PINGREQ"),
+        "pingresp": get_payload("mqtt_corpus/PINGRESP"),
         "auth": get_payload("mqtt_corpus/AUTH"),
         "publish": get_payload("mqtt_corpus/PUBLISH"),
         "disconnect": get_payload("mqtt_corpus/DISCONNECT")
@@ -135,7 +139,7 @@ def get_params():
 def handle_crash():
     if "last_fuzz" not in globals():
         print("There was an error connecting to the broker.")
-        subprocess.Popen(["bash", "restart_broker.sh"]) 
+        subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
@@ -162,11 +166,8 @@ def construct_payload(all_payloads):
     return payload
     
 def fuzz_payloads(all_payloads, params):
-    all_payloads["connect"] = fuzz_target(all_payloads["connect"], params)
-    all_payloads["auth"] = fuzz_target(all_payloads["auth"], params)
-    all_payloads["publish"] = fuzz_target(all_payloads["publish"], params)
-    all_payloads["disconnect"] = fuzz_target(all_payloads["disconnect"], params)
-
+    for a in all_payloads:
+        all_payloads[a] = fuzz_target(all_payloads[a], params)
     return all_payloads
 
 # Fuzz MQTT
@@ -244,7 +245,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, fuzz_intensity, construct_intensity, construct_payload, payload_only, verbosity, response_delay
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, construct_payload, payload_only, verbosity, response_delay
 
     if(args.host):
         host = args.host
@@ -255,6 +256,8 @@ def main(argv):
         port = int(args.port)
     else:
         port = 1883
+
+    broker_exe = "/usr/sbin/mosquitto"
 
     if(args.seed):  
         seed = int(args.seed)
