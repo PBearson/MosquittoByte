@@ -1,6 +1,8 @@
 TODO track and log interesting results
 
-TODO add way to restart script if it crashes
+TODO add option to set broker script
+
+TODO add option to stop script on crash
 
 TODO need to explain parameters
 
