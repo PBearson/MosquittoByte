@@ -170,13 +170,6 @@ def get_last_index():
     except (FileNotFoundError, ValueError):
         return -1
 
-    #       f = open("crashes.txt", "r")
-    # packets = f.read().splitlines()[1:]
-    # selection_index = random.randint(0, len(packets) - 1)
-    # selection = packets[selection_index].split(",")[5]
-    # payload = bytearray.fromhex(selection)
-    # f.close()
-
 def handle_crash():
     if "last_fuzz" not in globals():
         print("There was an error connecting to the broker.")
