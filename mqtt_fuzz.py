@@ -108,7 +108,7 @@ def source_payload(params):
     f = open("crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[3]
+    selection = packets[selection_index].split(",")[4]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -147,6 +147,17 @@ def get_params():
         }
     return params
 
+def check_duplicate_source(payload):
+    f = open("crashes.txt", "r")
+    packets = f.read().splitlines()[1:]
+    f.close()
+
+    for p in packets:
+        curr = p.split(",")[4].strip(" ")
+        if payload.hex() == curr:
+            return True
+    return False
+
 
 def handle_crash():
     if "last_fuzz" not in globals():
@@ -155,7 +166,7 @@ def handle_crash():
     else:
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
-            f.write("Seed, Fuzz intensity, Construct intensity, Payload\n")
+            f.write("Seed, Fuzz intensity, Construct intensity, Source, Payload\n")
 
         seed = last_fuzz["seed"]
         fi = last_fuzz["fuzz_intensity"]
@@ -165,16 +176,19 @@ def handle_crash():
         if verbosity >= 1:
             print("The following input crashed the program")
             print(seed, fi, ci, source, payload.hex())
-        f = open("crashes.txt", "a")
-        f.write("%s, %s, %s, %s, %s\n" % (seed, fi, ci, source, payload.hex()))
-        f.close()
+
+        duplicate_source = check_duplicate_source(payload)
+        if not duplicate_source:
+            f = open("crashes.txt", "a")
+            f.write("%s, %s, %s, %s, %s\n" % (seed, fi, ci, source, payload.hex()))
+            f.close()
 
         if exit_on_crash:
             exit()
         else:
             subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             print("Waiting a second to restart the broker")
-            time.sleep(1)
+            time.sleep(0.01)
 
 def construct_payload(all_payloads):
     # TODO
@@ -260,7 +274,7 @@ def fuzz(seed):
         "seed": seed,
         "fuzz_intensity": fuzz_intensity,
         "construct_intensity": construct_intensity,
-        "source": source_payload,
+        "source": sourced_index,
         "payload": payload
     }
 
