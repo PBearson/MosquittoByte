@@ -104,6 +104,16 @@ def fuzz_target(f, params):
                 f = remove(f, num_remove_bytes)
     return f
 
+def source_payload(params):
+    f = open("crashes.txt", "r")
+    packets = f.read().splitlines()[1:]
+    selection_index = random.randint(0, len(packets) - 1)
+    selection = packets[selection_index].split(",")[3]
+    payload = bytearray.fromhex(selection)
+    f.close()
+    
+    return payload, fuzz_target(payload, params), selection_index
+
 # Return a tuple (a, b) where a and b are between abs_min and abs_max and a <= b
 def get_min_max(abs_min, abs_max):
     a = random.randint(abs_min, abs_max)
@@ -119,6 +129,7 @@ def get_params():
     super_add_enable = random.randint(0, 50)
     min_remove, max_remove = get_min_max(0, 10 * fuzz_intensity)
     min_fuzz_rounds, max_fuzz_rounds = get_min_max(0, fuzz_intensity)
+    sourcing = random.randint(0, 1)
 
     params = {
         "min_mutate": min_mutate, 
@@ -131,7 +142,8 @@ def get_params():
         "min_remove": min_remove,
         "max_remove": max_remove,
         "min_fuzz_rounds": min_fuzz_rounds,
-        "max_fuzz_rounds": max_fuzz_rounds
+        "max_fuzz_rounds": max_fuzz_rounds,
+        "sourcing": sourcing
         }
     return params
 
@@ -148,12 +160,13 @@ def handle_crash():
         seed = last_fuzz["seed"]
         fi = last_fuzz["fuzz_intensity"]
         ci = last_fuzz["construct_intensity"]
+        source = last_fuzz["source"]
         payload = last_fuzz["payload"]
         if verbosity >= 1:
             print("The following input crashed the program")
-            print(seed, fi, ci, payload.hex())
+            print(seed, fi, ci, source, payload.hex())
         f = open("crashes.txt", "a")
-        f.write("%s, %s, %s, %s\n" % (seed, fi, ci, payload.hex()))
+        f.write("%s, %s, %s, %s, %s\n" % (seed, fi, ci, source, payload.hex()))
         f.close()
 
         if exit_on_crash:
@@ -187,13 +200,23 @@ def fuzz(seed):
 
     params = get_params()
 
-    all_payloads = get_all_payloads()
-   
-    unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
+    # Get number of entries in crash file so far
+    try:
+        f = open("crashes.txt", "r")
+        f_len = len(f.read().splitlines())
+        f.close()
+    except FileNotFoundError:
+        f_len = -1
 
-    all_payloads = fuzz_payloads(all_payloads, params)
-
-    payload, enumerated_payloads = construct_payload(all_payloads)
+    # Don't source the fuzzer with a previous crash
+    if f_len < 2 or params["sourcing"] == 0 or "payload_only" in globals():
+        all_payloads = get_all_payloads()
+        unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
+        all_payloads = fuzz_payloads(all_payloads, params)
+        payload, enumerated_payloads = construct_payload(all_payloads)
+        sourced_index = None
+    else:
+        unfuzzed_payload, payload, sourced_index = source_payload(params)
     
     if("payload_only" in globals()):
         print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
@@ -237,6 +260,7 @@ def fuzz(seed):
         "seed": seed,
         "fuzz_intensity": fuzz_intensity,
         "construct_intensity": construct_intensity,
+        "source": source_payload,
         "payload": payload
     }
 
