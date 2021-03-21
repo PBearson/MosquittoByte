@@ -10,6 +10,7 @@ import select
 import subprocess
 
 from os import path
+from datetime import datetime
 
 # Remove bytes in a string
 # f : the fuzzable object
@@ -108,7 +109,7 @@ def source_payload(params):
     f = open("crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[4]
+    selection = packets[selection_index].split(",")[6]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -153,11 +154,28 @@ def check_duplicate_source(payload):
     f.close()
 
     for p in packets:
-        curr = p.split(",")[4].strip(" ")
+        curr = p.split(",")[6].strip(" ")
         if payload.hex() == curr:
             return True
     return False
 
+def get_last_index():
+    try:
+        f = open("crashes.txt", "r")
+        last_entry = f.read().splitlines()[-1]
+        last_index = last_entry.split(",")[0]
+        print(last_index)
+        f.close()
+        return int(last_index)
+    except (FileNotFoundError, ValueError):
+        return -1
+
+    #       f = open("crashes.txt", "r")
+    # packets = f.read().splitlines()[1:]
+    # selection_index = random.randint(0, len(packets) - 1)
+    # selection = packets[selection_index].split(",")[5]
+    # payload = bytearray.fromhex(selection)
+    # f.close()
 
 def handle_crash():
     if "last_fuzz" not in globals():
@@ -166,7 +184,8 @@ def handle_crash():
     else:
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
-            f.write("Seed, Fuzz intensity, Construct intensity, Source, Payload\n")
+            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source, Payload\n")
+            f.close()
 
         seed = last_fuzz["seed"]
         fi = last_fuzz["fuzz_intensity"]
@@ -177,10 +196,11 @@ def handle_crash():
             print("The following input crashed the program")
             print(seed, fi, ci, source, payload.hex())
 
+        index = get_last_index() + 1
         duplicate_source = check_duplicate_source(payload)
         if not duplicate_source:
             f = open("crashes.txt", "a")
-            f.write("%s, %s, %s, %s, %s\n" % (seed, fi, ci, source, payload.hex()))
+            f.write("%s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, payload.hex()))
             f.close()
 
         if exit_on_crash:
