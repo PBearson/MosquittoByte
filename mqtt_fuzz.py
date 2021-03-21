@@ -232,6 +232,7 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
+    parser.add_argument("-B", "--broker_exe", help = "Set the broker exe location. If the broker crashes, this can be used to restart it. Defaults to /usr/sbin/mosquitto.")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
     parser.add_argument("-rd", "--response_delay", help="Set the delay between sending a packet and receiving the response from the broker. Default is whatever fuzz delay is set to.")
@@ -257,7 +258,10 @@ def main(argv):
     else:
         port = 1883
 
-    broker_exe = "/usr/sbin/mosquitto"
+    if args.broker_exe:
+        broker_exe = args.broker_exe
+    else:
+        broker_exe = "/usr/sbin/mosquitto"
 
     if(args.seed):  
         seed = int(args.seed)
@@ -311,7 +315,7 @@ def main(argv):
 
 
     print("Hello fellow fuzzer :)")
-    print("Host: %s, Port: %d" % (host, port))
+    print("Host: %s, Port: %d, Broker location: %s" % (host, port, broker_exe))
     print("Base seed: ", seed)
     print("Fuzz Intensity: ", fuzz_intensity)
     print("Construct intensity: ", construct_intensity)
