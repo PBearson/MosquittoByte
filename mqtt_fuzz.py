@@ -109,7 +109,7 @@ def source_payload(params):
     f = open("crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[6]
+    selection = packets[selection_index].split(",")[7]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -166,7 +166,7 @@ def check_duplicate_source(payload):
     f.close()
 
     for p in packets:
-        curr = p.split(",")[6].strip(" ")
+        curr = p.split(",")[7].strip(" ")
         if payload.hex() == curr:
             return True
     return False
@@ -207,6 +207,9 @@ def handle_crash():
         if not duplicate_source:
             f = open("crashes.txt", "a")
             f.write("%s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, sf, payload.hex()))
+            f.close()
+            f = open("crashes-raw.txt", "a")
+            f.write("%s\n" % payload.hex())
             f.close()
 
         if exit_on_crash:
