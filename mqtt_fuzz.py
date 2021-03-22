@@ -55,12 +55,21 @@ def get_payload(file):
 def get_all_payloads():
     all_payloads = {
         "connect": get_payload("mqtt_corpus/CONNECT"),
-        # "connack": get_payload("mqtt_corpus/CONNACK"),
-        # "pingreq": get_payload("mqtt_corpus/PINGREQ"),
-        # "pingresp": get_payload("mqtt_corpus/PINGRESP"),
+        "connack": get_payload("mqtt_corpus/CONNACK"),
+        "pingreq": get_payload("mqtt_corpus/PINGREQ"),
+        "pingresp": get_payload("mqtt_corpus/PINGRESP"),
         "auth": get_payload("mqtt_corpus/AUTH"),
         "publish": get_payload("mqtt_corpus/PUBLISH"),
-        "disconnect": get_payload("mqtt_corpus/DISCONNECT")
+        "puback": get_payload("mqtt_corpus/PUBACK"),
+        "pubrec": get_payload("mqtt_corpus/PUBREC"),
+        "pubrel": get_payload("mqtt_corpus/PUBREL"),
+        "pubcomp": get_payload("mqtt_corpus/PUBCOMP"),
+        "subscribe": get_payload("mqtt_corpus/SUBSCRIBE"),
+        "suback": get_payload("mqtt_corpus/SUBACK"),
+        "unsubscribe": get_payload("mqtt_corpus/UNSUBSCRIBE"),
+        "unsuback": get_payload("mqtt_corpus/UNSUBACK"),
+        "disconnect": get_payload("mqtt_corpus/DISCONNECT"),
+        "reserved": get_payload("mqtt_corpus/RESERVED")
     }
     return all_payloads
 
@@ -219,14 +228,41 @@ def handle_crash():
             print("Waiting a second to restart the broker")
             time.sleep(0.01)
 
+# Construct the payload according the construct intensity
 def construct_payload(all_payloads):
-    # TODO
-    selected_payloads = ("connect", "publish", "disconnect")
+    selected_payloads = []
+
+    if construct_intensity == 0:
+        allowed_payloads = ["auth", "pingreq", "pubcomp", "publish", "pubrec", "pubrel", "subscribe", "unsubscribe"]
+        payloads_subset = {e: all_payloads[e] for e in allowed_payloads}
+
+        selected_payloads.append("connect")
+        key, val = random.choice(list(payloads_subset.items()))
+        selected_payloads.append(key)
+        selected_payloads.append("disconnect")
+
+    elif construct_intensity == 1:
+        allowed_payloads = ["auth", "pingreq", "pubcomp", "publish", "pubrec", "pubrel", "subscribe", "unsubscribe"]
+        payloads_subset = {e: all_payloads[e] for e in allowed_payloads}
+
+        num_packets = random.randint(1, 5)
+        selected_payloads = dict(random.sample(list(payloads_subset.items()), num_packets)).keys()
+
+    elif construct_intensity == 2:
+        num_packets = random.randint(1, 10)
+        selected_payloads = dict(random.sample(list(all_payloads.items()), num_packets)).keys()
+    else:
+        num_packets = random.randint(1, 20)
+        for n in range(num_packets):
+            key, val = random.choice(list(all_payloads.items()))
+            selected_payloads.append(key)
+    
     enumerated_payloads = {}
     payload = b""
     for s in selected_payloads:
         payload = payload + all_payloads[s]
         enumerated_payloads[s] = all_payloads[s]
+    
     return (payload, enumerated_payloads)
     
 def fuzz_payloads(all_payloads, params):
