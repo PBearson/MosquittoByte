@@ -150,7 +150,7 @@ def get_params():
         sourcing = random.randint(0, 1)
     else:
         sourcing = 0
-        
+
     params = {
         "min_mutate": min_mutate, 
         "max_mutate": max_mutate, 
@@ -183,7 +183,6 @@ def get_last_index():
         f = open("crashes.txt", "r")
         last_entry = f.read().splitlines()[-1]
         last_index = last_entry.split(",")[0]
-        print(last_index)
         f.close()
         return int(last_index)
     except (FileNotFoundError, ValueError):
@@ -191,7 +190,8 @@ def get_last_index():
 
 def handle_crash():
     if "last_fuzz" not in globals():
-        print("There was an error connecting to the broker.")
+        if verbosity >= 5:
+            print("There was an error connecting to the broker.")
         subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
         if not path.exists("crashes.txt"):
@@ -223,7 +223,8 @@ def handle_crash():
             exit()
         else:
             subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print("Waiting a second to restart the broker")
+            if(verbosity >= 3):
+                print("Waiting a second to restart the broker")
             time.sleep(0.01)
 
 # Construct the payload according the construct intensity
@@ -288,7 +289,7 @@ def fuzz(seed):
     # Don't source the fuzzer with a previous crash
     if f_len < 2 or not params["sourcing"] == 0:
         all_payloads = get_all_payloads()
-        unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
+        # unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
         all_payloads = fuzz_payloads(all_payloads, params)
         payload, enumerated_payloads = construct_payload(all_payloads)
         sourced_index = None
@@ -297,16 +298,16 @@ def fuzz(seed):
     
     if "payload_only" in globals():
         if not params["sourcing"] == 0:
-            print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
-            for p in unfuzzed_enumerated_payloads:
-                print("%s: %s" % (p, unfuzzed_enumerated_payloads[p].hex()))
-            print("\nPayload after fuzzing:\t" + payload.hex())
+            # print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
+            # for p in unfuzzed_enumerated_payloads:
+                # print("%s: %s" % (p, unfuzzed_enumerated_payloads[p].hex()))
+            print("\nFuzzed payload:\t" + payload.hex())
             for p in enumerated_payloads:
                 print("%s: %s" % (p, enumerated_payloads[p].hex()))
             exit()
         else:
-            print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
-            print("\nPayload after fuzzing:\t" + payload.hex())
+            # print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
+            print("\nFuzzed payload:\t" + payload.hex())
             print("Sourced index:\t\t" + str(sourced_index))
             exit()
 
@@ -322,8 +323,8 @@ def fuzz(seed):
     if(verbosity >= 4):
         print("Sourced index:\t\t", sourced_index)
 
-    if(verbosity >= 2):
-        print("Unfuzzed payload:\t", unfuzzed_payload.hex())
+    # if(verbosity >= 2):
+    #     print("Unfuzzed payload:\t", unfuzzed_payload.hex())
 
     if(verbosity >= 1):
         print("Fuzzed payload:\t\t", payload.hex())
@@ -395,7 +396,6 @@ def main(argv):
         f = open("crashes.txt", "r")
         selected_line = f.read().splitlines()[crash_index + 1].split(",")
         f.close()
-        print(selected_line)
 
         seed = int(selected_line[2])
         fuzz_intensity = int(selected_line[3])
