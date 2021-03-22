@@ -326,6 +326,7 @@ def main(argv):
     parser.add_argument("-e", "--exit_on_crash", help = "Stop fuzzing when the target broker crashes. If not set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
+    parser.add_argument("-I", "--index", help = "Source the fuzzer using an index in the crashes.txt log file.")
     parser.add_argument("-rd", "--response_delay", help="Set the delay between sending a packet and receiving the response from the broker. Default is whatever fuzz delay is set to.")
     parser.add_argument("-m", "--max_runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
     parser.add_argument("-fi", "--fuzz_intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
@@ -354,15 +355,56 @@ def main(argv):
     else:
         broker_exe = "/usr/sbin/mosquitto"
 
+    # This arg means we just source from an index in crashes.txt. Handy for verifying a crash quickly.
+    if args.index:
+        crash_index = int(args.index)
+        f = open("crashes.txt", "r")
+        selected_line = f.read().splitlines()[crash_index + 1].split(",")
+        f.close()
+        print(selected_line)
+
+        seed = int(selected_line[2])
+        fuzz_intensity = int(selected_line[3])
+        construct_intensity = int(selected_line[4])
+        source_frequency = int(selected_line[6])        
+    else:
+        if(args.seed):  
+            seed = int(args.seed)
+        else:
+            seed = math.floor(time.time())
+
+        if(args.fuzz_intensity):
+            fuzz_intensity = int(args.fuzz_intensity)
+            if fuzz_intensity > 10:
+                fuzz_intensity = 10
+            if fuzz_intensity < 0:
+                fuzz_intensity = 0
+        else:
+            fuzz_intensity = 3
+
+        if(args.construct_intensity):
+            construct_intensity = int(args.construct_intensity)
+            if construct_intensity > 3:
+                construct_intensity = 3
+            if construct_intensity < 0:
+                construct_intensity = 0
+        else:
+            construct_intensity = 0
+
+        if(args.source_frequency):
+            source_frequency = int(args.source_frequency)
+            if source_frequency < 0:
+                source_frequency = 0
+            if source_frequency > 4:
+                source_frequency = 4
+        else:
+            source_frequency = 2
+
+
     if(args.exit_on_crash):
         exit_on_crash = True
     else:
-        exit_on_crash = False
-
-    if(args.seed):  
-        seed = int(args.seed)
-    else:
-        seed = math.floor(time.time())
+        exit_on_crash = False    
 
     if(args.fuzz_delay):
         fuzz_delay = float(args.fuzz_delay)
@@ -373,33 +415,6 @@ def main(argv):
         response_delay = float(args.response_delay)
     else:
         response_delay = fuzz_delay
-
-    if(args.fuzz_intensity):
-        fuzz_intensity = int(args.fuzz_intensity)
-        if fuzz_intensity > 10:
-            fuzz_intensity = 10
-        if fuzz_intensity < 0:
-            fuzz_intensity = 0
-    else:
-        fuzz_intensity = 3
-
-    if(args.construct_intensity):
-        construct_intensity = int(args.construct_intensity)
-        if construct_intensity > 3:
-            construct_intensity = 3
-        if construct_intensity < 0:
-            construct_intensity = 0
-    else:
-        construct_intensity = 0
-
-    if(args.source_frequency):
-        source_frequency = int(args.source_frequency)
-        if source_frequency < 0:
-            source_frequency = 0
-        if source_frequency > 4:
-            source_frequency = 4
-    else:
-        source_frequency = 2
 
     if(args.max_runs):
         max_runs = int(args.max_runs)
