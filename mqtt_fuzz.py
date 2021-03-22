@@ -189,13 +189,14 @@ def handle_crash():
     else:
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
-            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source, Payload\n")
+            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source, Source Frequency, Payload\n")
             f.close()
 
         seed = last_fuzz["seed"]
         fi = last_fuzz["fuzz_intensity"]
         ci = last_fuzz["construct_intensity"]
         source = last_fuzz["source"]
+        sf = last_fuzz["source_frequency"]
         payload = last_fuzz["payload"]
         if verbosity >= 1:
             print("The following input crashed the program")
@@ -205,7 +206,7 @@ def handle_crash():
         duplicate_source = check_duplicate_source(payload)
         if not duplicate_source:
             f = open("crashes.txt", "a")
-            f.write("%s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, payload.hex()))
+            f.write("%s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, sf, payload.hex()))
             f.close()
 
         if exit_on_crash:
@@ -310,6 +311,7 @@ def fuzz(seed):
         "fuzz_intensity": fuzz_intensity,
         "construct_intensity": construct_intensity,
         "source": sourced_index,
+        "source_frequency": source_frequency,
         "payload": payload
     }
 
