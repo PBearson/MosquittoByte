@@ -484,7 +484,7 @@ def main(argv):
     total_runs = 1
     while True:
 
-        if verbosity >= 1:
+        if verbosity >= 1 and not payload_only:
             print("\nRun:\t\t\t", total_runs)
 
         if verbosity >= 3:
