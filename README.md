@@ -5,5 +5,3 @@ TODO construct_intensity option:
     - intensity = 1: Packets can be arranged in any order. All packet types allowed. No repeat packets.
     - intensity = 2: Same as above. Packets can be repeated up to 3 times.
     - intensity = 3: Same as above. Packets can be repeated up to 10 times, and payloads themselves can be repeated up to 5 times.
-
-TODO make it so that we can pass a source input arg into the script. 
