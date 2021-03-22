@@ -236,7 +236,7 @@ def fuzz(seed):
         f_len = -1
 
     # Don't source the fuzzer with a previous crash
-    if f_len < 2 or params["sourcing"] == 0 or "payload_only" in globals():
+    if f_len < 2 or params["sourcing"] == 0:
         all_payloads = get_all_payloads()
         unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
         all_payloads = fuzz_payloads(all_payloads, params)
@@ -245,14 +245,21 @@ def fuzz(seed):
     else:
         unfuzzed_payload, payload, sourced_index = source_payload(params)
     
-    if("payload_only" in globals()):
-        print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
-        for p in unfuzzed_enumerated_payloads:
-            print("%s: %s" % (p, unfuzzed_enumerated_payloads[p].hex()))
-        print("\nPayload after fuzzing:\t" + payload.hex())
-        for p in enumerated_payloads:
-            print("%s: %s" % (p, enumerated_payloads[p].hex()))
-        exit()
+    if "payload_only" in globals():
+        if params["sourcing"] == 0:
+            print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
+            for p in unfuzzed_enumerated_payloads:
+                print("%s: %s" % (p, unfuzzed_enumerated_payloads[p].hex()))
+            print("\nPayload after fuzzing:\t" + payload.hex())
+            for p in enumerated_payloads:
+                print("%s: %s" % (p, enumerated_payloads[p].hex()))
+            exit()
+        else:
+            print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
+            print("\nPayload after fuzzing:\t" + payload.hex())
+            print("Sourced index:\t\t" + str(sourced_index))
+            exit()
+
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
