@@ -130,7 +130,19 @@ def get_params():
     super_add_enable = random.randint(0, 50)
     min_remove, max_remove = get_min_max(0, 10 * fuzz_intensity)
     min_fuzz_rounds, max_fuzz_rounds = get_min_max(0, fuzz_intensity)
-    sourcing = random.randint(0, 1)
+
+    if source_frequency == 0:
+        sourcing = 1
+    elif source_frequency == 1:
+        sourcing = random.randint(0, 100)
+    elif source_frequency == 2:
+        sourcing = random.randint(0, 10)
+    elif source_frequency == 3:
+        sourcing = random.randint(0, 1)
+    else:
+        sourcing = 0
+
+    # sourcing = random.randint(0, 1)
 
     params = {
         "min_mutate": min_mutate, 
@@ -236,7 +248,7 @@ def fuzz(seed):
         f_len = -1
 
     # Don't source the fuzzer with a previous crash
-    if f_len < 2 or params["sourcing"] == 0:
+    if f_len < 2 or not params["sourcing"] == 0:
         all_payloads = get_all_payloads()
         unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
         all_payloads = fuzz_payloads(all_payloads, params)
@@ -246,7 +258,7 @@ def fuzz(seed):
         unfuzzed_payload, payload, sourced_index = source_payload(params)
     
     if "payload_only" in globals():
-        if params["sourcing"] == 0:
+        if not params["sourcing"] == 0:
             print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
             for p in unfuzzed_enumerated_payloads:
                 print("%s: %s" % (p, unfuzzed_enumerated_payloads[p].hex()))
@@ -268,6 +280,9 @@ def fuzz(seed):
     except ConnectionRefusedError:
         handle_crash()
         return
+
+    if(verbosity >= 4):
+        print("Sourced index:\t\t", sourced_index)
 
     if(verbosity >= 2):
         print("Unfuzzed payload:\t", unfuzzed_payload.hex())
@@ -303,20 +318,21 @@ def main(argv):
     parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
     parser.add_argument("-B", "--broker_exe", help = "Set the broker exe location. If the broker crashes, this can be used to restart it. Defaults to /usr/sbin/mosquitto.")
-    parser.add_argument("-e", "--exit_on_crash", help = "Stop fuzzing when the targer broker crashes. If not set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
+    parser.add_argument("-e", "--exit_on_crash", help = "Stop fuzzing when the target broker crashes. If not set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
     parser.add_argument("-rd", "--response_delay", help="Set the delay between sending a packet and receiving the response from the broker. Default is whatever fuzz delay is set to.")
     parser.add_argument("-m", "--max_runs", help = "Set the number of fuzz attempts made. If not set, the fuzzer will run indefinitely.")
     parser.add_argument("-fi", "--fuzz_intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
+    parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
     parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, construct_payload, payload_only, verbosity, response_delay, exit_on_crash
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, construct_payload, payload_only, verbosity, response_delay, exit_on_crash
 
     if(args.host):
         host = args.host
@@ -371,6 +387,15 @@ def main(argv):
     else:
         construct_intensity = 0
 
+    if(args.source_frequency):
+        source_frequency = int(args.source_frequency)
+        if source_frequency < 0:
+            source_frequency = 0
+        if source_frequency > 4:
+            source_frequency = 4
+    else:
+        source_frequency = 2
+
     if(args.max_runs):
         max_runs = int(args.max_runs)
 
@@ -394,6 +419,7 @@ def main(argv):
     print("Base seed: ", seed)
     print("Fuzz Intensity: ", fuzz_intensity)
     print("Construct intensity: ", construct_intensity)
+    print("Source frequency: ", source_frequency)
 
     if(args.payload_only):
         payload_only = args.payload_only
