@@ -150,9 +150,7 @@ def get_params():
         sourcing = random.randint(0, 1)
     else:
         sourcing = 0
-
-    # sourcing = random.randint(0, 1)
-
+        
     params = {
         "min_mutate": min_mutate, 
         "max_mutate": max_mutate, 
