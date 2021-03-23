@@ -114,11 +114,21 @@ def fuzz_target(f, params):
                 f = remove(f, num_remove_bytes)
     return f
 
-def source_payload(params):
+def source_payload_with_response(params):
+    f = open("broker_responses.txt", "r")
+    packets = f.read().splitlines()[1:]
+    selection_index = random.randint(0, len(packets) - 1)
+    selection = packets[selection_index].split(",")[0]
+    payload = bytearray.fromhex(selection)
+    f.close()
+    
+    return payload, fuzz_target(payload, params), selection_index
+
+def source_payload_with_crash(params):
     f = open("crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[7]
+    selection = packets[selection_index].split(",")[8]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -151,6 +161,17 @@ def get_params():
     else:
         sourcing = 0
 
+    if response_frequency == 0:
+        responding = 1
+    elif response_frequency == 1:
+        responding = random.randint(0, 100)
+    elif response_frequency == 2:
+        responding = random.randint(0, 10)
+    elif response_frequency == 3:
+        responding = random.randint(0, 1)
+    else:
+        responding = 0
+
     params = {
         "min_mutate": min_mutate, 
         "max_mutate": max_mutate, 
@@ -163,7 +184,8 @@ def get_params():
         "max_remove": max_remove,
         "min_fuzz_rounds": min_fuzz_rounds,
         "max_fuzz_rounds": max_fuzz_rounds,
-        "sourcing": sourcing
+        "sourcing": sourcing,
+        "responding": responding
         }
     return params
 
@@ -173,7 +195,7 @@ def check_duplicate_source(payload):
     f.close()
 
     for p in packets:
-        curr = p.split(",")[7].strip(" ")
+        curr = p.split(",")[8].strip(" ")
         if payload.hex() == curr:
             return True
     return False
@@ -222,7 +244,7 @@ def handle_crash():
     else:
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
-            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source, Source Frequency, Payload\n")
+            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source, Source Frequency, Response Frequency, Payload\n")
             f.close()
 
         seed = last_fuzz["seed"]
@@ -230,6 +252,7 @@ def handle_crash():
         ci = last_fuzz["construct_intensity"]
         source = last_fuzz["source"]
         sf = last_fuzz["source_frequency"]
+        rf = last_fuzz["response_frequency"]
         payload = last_fuzz["payload"]
         if verbosity >= 1:
             print("The following input crashed the program")
@@ -239,7 +262,7 @@ def handle_crash():
         duplicate_source = check_duplicate_source(payload)
         if not duplicate_source:
             f = open("crashes.txt", "a")
-            f.write("%s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, sf, payload.hex()))
+            f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, sf, rf, payload.hex()))
             f.close()
             f = open("crashes-raw.txt", "a")
             f.write("%s\n" % payload.hex())
@@ -312,15 +335,33 @@ def fuzz(seed):
     except FileNotFoundError:
         f_len = -1
 
+    # Get number of entries in response file so far
+    try:
+        r = open("broker_responses.txt", "r")
+        r_len = len(r.read().splitlines())
+        r.close()
+    except FileNotFoundError:
+        f_len = -1
+
+    sourced_index = None
+    response_index = None
+
     # Don't source the fuzzer with a previous crash
-    if f_len < 2 or not params["sourcing"] == 0:
+    if (f_len < 2 or not params["sourcing"] == 0) and (r_len < 2 or not params["responding"] == 0):
         all_payloads = get_all_payloads()
         # unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
         all_payloads = fuzz_payloads(all_payloads, params)
         payload, enumerated_payloads = construct_payload(all_payloads)
-        sourced_index = None
+
+    # Source with previous crash
+    elif f_len >= 2 and params["sourcing"] == 0:
+        unfuzzed_payload, payload, sourced_index = source_payload_with_crash(params)
+
+    # Source with broker
     else:
-        unfuzzed_payload, payload, sourced_index = source_payload(params)
+        print("Sourcing with response")
+        unfuzzed_payload, payload, response_index = source_payload_with_response(params)
+
     
     if payload_only:
         if not params["sourcing"] == 0:
@@ -348,6 +389,7 @@ def fuzz(seed):
 
     if(verbosity >= 4):
         print("Sourced index:\t\t", sourced_index)
+        print("Response index:\t\t", response_index)
 
     # if(verbosity >= 2):
     #     print("Unfuzzed payload:\t", unfuzzed_payload.hex())
@@ -377,6 +419,7 @@ def fuzz(seed):
         "construct_intensity": construct_intensity,
         "source": sourced_index,
         "source_frequency": source_frequency,
+        "response_frequency": response_frequency,
         "payload": payload
     }
 
@@ -394,13 +437,14 @@ def main(argv):
     parser.add_argument("-fi", "--fuzz_intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
+    parser.add_argument("-rf", "--response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
     parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, construct_payload, payload_only, verbosity, response_delay, exit_on_crash
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, exit_on_crash
 
     if(args.host):
         host = args.host
@@ -427,7 +471,8 @@ def main(argv):
         seed = int(selected_line[2])
         fuzz_intensity = int(selected_line[3])
         construct_intensity = int(selected_line[4])
-        source_frequency = int(selected_line[6])        
+        source_frequency = int(selected_line[6])
+        response_frequency = int(selected_line[7])
     else:
         if(args.seed):  
             seed = int(args.seed)
@@ -460,6 +505,15 @@ def main(argv):
                 source_frequency = 4
         else:
             source_frequency = 2
+
+        if(args.response_frequency):
+            response_frequency = int(args.response_frequency)
+            if response_frequency < 0:
+                response_frequency = 0
+            if response_frequency > 4:
+                response_frequency = 4
+        else:
+            response_frequency = 3
 
 
     if(args.exit_on_crash):
@@ -501,6 +555,7 @@ def main(argv):
     print("Fuzz Intensity: ", fuzz_intensity)
     print("Construct intensity: ", construct_intensity)
     print("Source frequency: ", source_frequency)
+    print("Response frequency: ", response_frequency)
 
     if(args.payload_only):
         payload_only = True
