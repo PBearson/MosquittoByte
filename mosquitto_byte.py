@@ -341,7 +341,7 @@ def fuzz(seed):
         r_len = len(r.read().splitlines())
         r.close()
     except FileNotFoundError:
-        f_len = -1
+        r_len = -1
 
     sourced_index = None
     response_index = None
@@ -359,7 +359,6 @@ def fuzz(seed):
 
     # Source with broker
     else:
-        print("Sourcing with response")
         unfuzzed_payload, payload, response_index = source_payload_with_response(params)
 
     
