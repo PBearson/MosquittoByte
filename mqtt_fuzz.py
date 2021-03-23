@@ -178,6 +178,18 @@ def check_duplicate_source(payload):
             return True
     return False
 
+def check_duplicate_response(response):
+    f = open("broker_responses.txt", "r")
+    packets = f.read().splitlines()[1:]
+    f.close()
+
+    for p in packets:
+        curr = p.split(",")[1].strip(" ")
+        if response.hex() == curr:
+            return True
+    return False
+
+
 def get_last_index():
     try:
         f = open("crashes.txt", "r")
@@ -187,6 +199,20 @@ def get_last_index():
         return int(last_index)
     except (FileNotFoundError, ValueError):
         return -1
+
+def handle_broker_response(payload, response):
+    if not path.exists("broker_responses.txt"):
+        f = open("broker_responses.txt", "w")
+        f.write("Payload, Response\n")
+        f.close()
+
+    duplicate_response = check_duplicate_response(response)
+
+    if not duplicate_response:
+        f = open("broker_responses.txt", "a")
+        f.write("%s, %s\n" % (payload.hex(), response.hex()))
+        f.close()
+
 
 def handle_crash():
     if "last_fuzz" not in globals():
@@ -296,7 +322,7 @@ def fuzz(seed):
     else:
         unfuzzed_payload, payload, sourced_index = source_payload(params)
     
-    if "payload_only" in globals():
+    if payload_only:
         if not params["sourcing"] == 0:
             # print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
             # for p in unfuzzed_enumerated_payloads:
@@ -334,6 +360,7 @@ def fuzz(seed):
     if ready[0]:
         try:
             response = s.recv(1024)
+            handle_broker_response(payload, response)
             if verbosity >= 5:
                 print("Broker response:\t", response.hex())
         except ConnectionResetError:
@@ -476,10 +503,12 @@ def main(argv):
     print("Source frequency: ", source_frequency)
 
     if(args.payload_only):
-        payload_only = args.payload_only
+        payload_only = True
         random.seed(seed)
         params = get_params()
         print("\nYour params: ", params)
+    else:
+        payload_only = False
 
     total_runs = 1
     while True:
