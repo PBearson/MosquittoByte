@@ -234,6 +234,9 @@ def handle_broker_response(payload, response):
         f = open("broker_responses.txt", "a")
         f.write("%s, %s\n" % (payload.hex(), response.hex()))
         f.close()
+        f = open("broker_responses_raw.txt", "a")
+        f.write("%s\n" % response.hex())
+        f.close()
 
 
 def handle_crash():
@@ -255,8 +258,8 @@ def handle_crash():
         rf = last_fuzz["response_frequency"]
         payload = last_fuzz["payload"]
         if verbosity >= 1:
-            print("The following input crashed the program")
-            print(seed, fi, ci, source, payload.hex())
+            print("The following payload crashed the program")
+            print(payload.hex())
 
         index = get_last_index() + 1
         duplicate_source = check_duplicate_source(payload)
@@ -264,7 +267,7 @@ def handle_crash():
             f = open("crashes.txt", "a")
             f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, sf, rf, payload.hex()))
             f.close()
-            f = open("crashes-raw.txt", "a")
+            f = open("crashes_raw.txt", "a")
             f.write("%s\n" % payload.hex())
             f.close()
 
@@ -319,29 +322,33 @@ def fuzz_payloads(all_payloads, params):
     return all_payloads
 
 # Fuzz MQTT
+f_len = -1
+r_len = -1
+
 def fuzz(seed):
 
-    global last_fuzz
+    global last_fuzz, f_len, r_len
 
     random.seed(seed)
 
     params = get_params()
 
-    # Get number of entries in crash file so far
-    try:
-        f = open("crashes.txt", "r")
-        f_len = len(f.read().splitlines())
-        f.close()
-    except FileNotFoundError:
-        f_len = -1
-
-    # Get number of entries in response file so far
-    try:
-        r = open("broker_responses.txt", "r")
-        r_len = len(r.read().splitlines())
-        r.close()
-    except FileNotFoundError:
-        r_len = -1
+    if f_len == -1:
+        # Get number of entries in crash file so far
+        try:
+            f = open("crashes.txt", "r")
+            f_len = len(f.read().splitlines())
+            f.close()
+        except FileNotFoundError:
+            f_len = -1
+    if r_len == -1:
+        # Get number of entries in response file so far
+        try:
+            r = open("broker_responses.txt", "r")
+            r_len = len(r.read().splitlines())
+            r.close()
+        except FileNotFoundError:
+            r_len = -1
 
     sourced_index = None
     response_index = None
