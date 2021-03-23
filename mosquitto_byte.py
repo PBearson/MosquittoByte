@@ -349,7 +349,6 @@ def fuzz(seed):
     # Don't source the fuzzer with a previous crash
     if (f_len < 2 or not params["sourcing"] == 0) and (r_len < 2 or not params["responding"] == 0):
         all_payloads = get_all_payloads()
-        # unfuzzed_payload, unfuzzed_enumerated_payloads = construct_payload(all_payloads)
         all_payloads = fuzz_payloads(all_payloads, params)
         payload, enumerated_payloads = construct_payload(all_payloads)
 
@@ -363,18 +362,15 @@ def fuzz(seed):
 
     
     if payload_only:
-        if not params["sourcing"] == 0:
-            # print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
-            # for p in unfuzzed_enumerated_payloads:
-                # print("%s: %s" % (p, unfuzzed_enumerated_payloads[p].hex()))
+        if not params["sourcing"] == 0 and not params["responding"] == 0:
             print("\nFuzzed payload:\t" + payload.hex())
             for p in enumerated_payloads:
                 print("%s: %s" % (p, enumerated_payloads[p].hex()))
             exit()
         else:
-            # print("\nPayload before fuzzing:\t" + unfuzzed_payload.hex())
             print("\nFuzzed payload:\t" + payload.hex())
             print("Sourced index:\t\t" + str(sourced_index))
+            print("Response index:\t\t" + str(response_index))
             exit()
 
 
@@ -389,9 +385,6 @@ def fuzz(seed):
     if(verbosity >= 4):
         print("Sourced index:\t\t", sourced_index)
         print("Response index:\t\t", response_index)
-
-    # if(verbosity >= 2):
-    #     print("Unfuzzed payload:\t", unfuzzed_payload.hex())
 
     if(verbosity >= 1):
         print("Fuzzed payload:\t\t", payload.hex())
