@@ -130,7 +130,7 @@ def source_payload_with_crash(params):
     f = open("crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[8]
+    selection = packets[selection_index].split(",")[9]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -197,7 +197,7 @@ def check_duplicate_source(payload):
     f.close()
 
     for p in packets:
-        curr = p.split(",")[8].strip(" ")
+        curr = p.split(",")[9].strip(" ")
         if payload.hex() == curr:
             return True
     return False
@@ -213,7 +213,8 @@ def check_duplicate_response(response):
     for p in packets:
         curr = p.split(",")[1].strip(" ")
         similarity = SequenceMatcher(None, curr, response.hex()).ratio()
-        if response.hex() == curr or similarity >= 0.7:
+        if similarity >= max_response_threshold:
+            print("Similarity:", similarity)
             return True
     return False
 
@@ -236,7 +237,11 @@ def handle_broker_response(payload, response):
 
     duplicate_response = check_duplicate_response(response)
 
-    if not duplicate_response:
+    f = open("broker_responses.txt", "r")
+    f_len = len(f.read().splitlines())
+    f.close()
+
+    if not duplicate_response and f_len < max_response_entries:
         f = open("broker_responses.txt", "a")
         f.write("%s, %s\n" % (payload.hex(), response.hex()))
         f.close()
@@ -253,13 +258,14 @@ def handle_crash():
     else:
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
-            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source, Source Frequency, Response Frequency, Payload\n")
+            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source Index, Response Index, Source Frequency, Response Frequency, Payload\n")
             f.close()
 
         seed = last_fuzz["seed"]
         fi = last_fuzz["fuzz_intensity"]
         ci = last_fuzz["construct_intensity"]
-        source = last_fuzz["source"]
+        si = last_fuzz["source_index"]
+        ri = last_fuzz["response_index"]
         sf = last_fuzz["source_frequency"]
         rf = last_fuzz["response_frequency"]
         payload = last_fuzz["payload"]
@@ -271,13 +277,13 @@ def handle_crash():
         duplicate_source = check_duplicate_source(payload)
         if not duplicate_source:
             f = open("crashes.txt", "a")
-            f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, source, sf, rf, payload.hex()))
+            f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, si, ri, sf, rf, payload.hex()))
             f.close()
             f = open("crashes_raw.txt", "a")
             f.write("%s\n" % payload.hex())
             f.close()
 
-        if exit_on_crash:
+        if not restart_on_crash:
             exit()
         else:
             subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -423,7 +429,8 @@ def fuzz(seed):
         "seed": seed,
         "fuzz_intensity": fuzz_intensity,
         "construct_intensity": construct_intensity,
-        "source": sourced_index,
+        "source_index": sourced_index,
+        "response_index": response_index,
         "source_frequency": source_frequency,
         "response_frequency": response_frequency,
         "payload": payload
@@ -435,7 +442,7 @@ def main(argv):
     parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
     parser.add_argument("-B", "--broker_exe", help = "Set the broker exe location. If the broker crashes, this can be used to restart it. Defaults to /usr/sbin/mosquitto.")
-    parser.add_argument("-e", "--exit_on_crash", help = "Stop fuzzing when the target broker crashes. If not set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
+    parser.add_argument("-R", "--restart_on_crash", help = "If set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
     parser.add_argument("-I", "--index", help = "Source the fuzzer using an index in the crashes.txt log file.")
@@ -445,6 +452,8 @@ def main(argv):
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
     parser.add_argument("-rf", "--response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
+    parser.add_argument("-mrt", "--max_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.7.")
+    parser.add_argument("-mre", "--max_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
     parser.add_argument("-N", "--no_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
@@ -452,7 +461,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, exit_on_crash, no_response_log
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_response_log, max_response_entries, max_response_threshold
 
     if(args.host):
         host = args.host
@@ -479,8 +488,8 @@ def main(argv):
         seed = int(selected_line[2])
         fuzz_intensity = int(selected_line[3])
         construct_intensity = int(selected_line[4])
-        source_frequency = int(selected_line[6])
-        response_frequency = int(selected_line[7])
+        source_frequency = int(selected_line[7])
+        response_frequency = int(selected_line[8])
     else:
         if(args.seed):  
             seed = int(args.seed)
@@ -524,10 +533,10 @@ def main(argv):
             response_frequency = 3
 
 
-    if(args.exit_on_crash):
-        exit_on_crash = True
+    if(args.restart_on_crash):
+        restart_on_crash = True
     else:
-        exit_on_crash = False    
+        restart_on_crash = False    
 
     if(args.fuzz_delay):
         fuzz_delay = float(args.fuzz_delay)
@@ -560,6 +569,20 @@ def main(argv):
         no_response_log = True
     else:
         no_response_log = False
+
+    if(args.max_response_entries):
+        max_response_entries = int(args.max_response_entries)
+    else:
+        max_response_entries = 150
+
+    if(args.max_response_threshold):
+        max_response_threshold = float(args.max_response_threshold)
+        if max_response_threshold < 0:
+            max_response_threshold = 0
+        if max_response_threshold > 1:
+            max_response_threshold = 1
+    else:
+        max_response_threshold = 0.7
 
     print("Hello fellow fuzzer :)")
     print("Host: %s, Port: %d, Broker location: %s" % (host, port, broker_exe))
