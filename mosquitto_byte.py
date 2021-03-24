@@ -214,7 +214,6 @@ def check_duplicate_response(response):
         curr = p.split(",")[1].strip(" ")
         similarity = SequenceMatcher(None, curr, response.hex()).ratio()
         if similarity >= max_response_threshold:
-            print("Similarity:", similarity)
             return True
     return False
 
