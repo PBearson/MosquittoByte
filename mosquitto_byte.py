@@ -8,9 +8,11 @@ import os
 import os.path
 import select
 import subprocess
+import difflib
 
 from os import path
 from datetime import datetime
+from difflib import SequenceMatcher
 
 # Remove bytes in a string
 # f : the fuzzable object
@@ -200,6 +202,9 @@ def check_duplicate_source(payload):
             return True
     return False
 
+# Check for duplicate responses in the broker response log.
+# This includes responses that are too similar, but not exactly
+# duplicates.
 def check_duplicate_response(response):
     f = open("broker_responses.txt", "r")
     packets = f.read().splitlines()[1:]
@@ -207,7 +212,8 @@ def check_duplicate_response(response):
 
     for p in packets:
         curr = p.split(",")[1].strip(" ")
-        if response.hex() == curr:
+        similarity = SequenceMatcher(None, curr, response.hex()).ratio()
+        if response.hex() == curr or similarity >= 0.7:
             return True
     return False
 
@@ -401,7 +407,8 @@ def fuzz(seed):
     if ready[0]:
         try:
             response = s.recv(1024)
-            handle_broker_response(payload, response)
+            if not no_response_log:
+                handle_broker_response(payload, response)
             if verbosity >= 5:
                 print("Broker response:\t", response.hex())
         except ConnectionResetError:
@@ -421,6 +428,7 @@ def fuzz(seed):
         "response_frequency": response_frequency,
         "payload": payload
     }
+    
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -437,13 +445,14 @@ def main(argv):
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
     parser.add_argument("-rf", "--response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
+    parser.add_argument("-N", "--no_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
     parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, exit_on_crash
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, exit_on_crash, no_response_log
 
     if(args.host):
         host = args.host
@@ -547,6 +556,10 @@ def main(argv):
     else:
         verbosity = 1
 
+    if(args.no_response_log):
+        no_response_log = True
+    else:
+        no_response_log = False
 
     print("Hello fellow fuzzer :)")
     print("Host: %s, Port: %d, Broker location: %s" % (host, port, broker_exe))
