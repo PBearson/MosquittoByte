@@ -441,7 +441,7 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
-    parser.add_argument("-B", "--broker_exe", help = "Set the broker exe location. If the broker crashes, this can be used to restart it. Defaults to /usr/sbin/mosquitto.")
+    parser.add_argument("-B", "--broker_exe", help = "Set the broker exe location. If the broker crashes, this can be used to restart it.")
     parser.add_argument("-R", "--restart_on_crash", help = "If set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
@@ -475,8 +475,9 @@ def main(argv):
 
     if args.broker_exe:
         broker_exe = args.broker_exe
-    else:
-        broker_exe = "/usr/sbin/mosquitto"
+        if not path.exists(broker_exe):
+            print("It seems like the broker exe you provided does not exist.")
+            exit()
 
     # This arg means we just source from an index in crashes.txt. Handy for verifying a crash quickly.
     if args.index:
@@ -535,6 +536,9 @@ def main(argv):
 
     if(args.restart_on_crash):
         restart_on_crash = True
+        if "broker_exe" not in globals():
+            print("You cannot restart on crash if the broker exe is not defined.")
+            exit()
     else:
         restart_on_crash = False    
 
@@ -585,7 +589,7 @@ def main(argv):
         max_response_threshold = 0.7
 
     print("Hello fellow fuzzer :)")
-    print("Host: %s, Port: %d, Broker location: %s" % (host, port, broker_exe))
+    print("Host: %s, Port: %d" % (host, port))
     print("Base seed: ", seed)
     print("Fuzz Intensity: ", fuzz_intensity)
     print("Construct intensity: ", construct_intensity)
