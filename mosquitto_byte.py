@@ -254,7 +254,11 @@ def handle_crash():
     if "last_fuzz" not in globals():
         if verbosity >= 5:
             print("There was an error connecting to the broker.")
-        subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except NameError:
+            print("No MQTT process appears to be running at %s:%s, and you have not defined a broker exe. You must do one or the other." % (host, port))
+            exit()
     else:
         if not path.exists("crashes.txt"):
             f = open("crashes.txt", "w")
@@ -381,16 +385,15 @@ def fuzz(seed):
 
     
     if payload_only:
+        print("\nSourced index:\t\t" + str(sourced_index))
+        print("Response index:\t\t" + str(response_index))
         if not params["sourcing"] == 0 and not params["responding"] == 0:
             print("\nFuzzed payload:\t" + payload.hex())
             for p in enumerated_payloads:
                 print("%s: %s" % (p, enumerated_payloads[p].hex()))
-            exit()
         else:
-            print("\nFuzzed payload:\t" + payload.hex())
-            print("Sourced index:\t\t" + str(sourced_index))
-            print("Response index:\t\t" + str(response_index))
-            exit()
+            print("\nFuzzed payload:\t" + payload.hex())     
+        exit()
 
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
