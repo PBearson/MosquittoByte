@@ -9,6 +9,7 @@ import os.path
 import select
 import subprocess
 import difflib
+import threading
 
 from os import path
 from datetime import datetime
@@ -248,13 +249,21 @@ def handle_broker_response(payload, response):
         f.write("%s\n" % response.hex())
         f.close()
 
+def handle_stream_response(proc):
+    for line in iter(proc.stdout.readline, b''):
+        print(line.decode('latin'))
+
+def start_broker():
+    proc = subprocess.Popen([broker_exe], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    t = threading.Thread(target=handle_stream_response, args=(proc,))
+    t.start()
 
 def handle_crash():
     if "last_fuzz" not in globals():
         if verbosity >= 5:
             print("There was an error connecting to the broker.")
         try:
-            subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            start_broker()
         except NameError:
             print("No MQTT process appears to be running at %s:%s, and you have not defined a broker exe. You must do one or the other." % (host, port))
             exit()
@@ -427,6 +436,7 @@ def fuzz(seed):
             print("Error:\t\t\tBroker was not ready for reading.")
     s.close()
 
+    # Update the last fuzz params
     last_fuzz = {
         "seed": seed,
         "fuzz_intensity": fuzz_intensity,
@@ -436,8 +446,7 @@ def fuzz(seed):
         "source_frequency": source_frequency,
         "response_frequency": response_frequency,
         "payload": payload
-    }
-    
+    }    
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -480,6 +489,9 @@ def main(argv):
         if not path.exists(broker_exe):
             print("It seems like the broker exe you provided does not exist.")
             exit()
+        else:
+            start_broker()
+            time.sleep(0.1)
 
     # This arg means we just source from an index in crashes.txt. Handy for verifying a crash quickly.
     if args.index:
