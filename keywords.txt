@@ -1,0 +1,8 @@
+warning
+error
+exception
+fatal
+crash
+unexpectedly
+malformed
+null
