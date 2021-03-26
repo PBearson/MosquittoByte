@@ -206,18 +206,36 @@ def check_duplicate_source(payload):
 # Check for duplicate responses in the broker response log.
 # This includes responses that are too similar, but not exactly
 # duplicates.
-def check_duplicate_response(response):
-    f = open("broker_responses.txt", "r")
-    packets = f.read().splitlines()[1:]
+def check_duplicate_network_response(response):
+    if not path.exists("broker_responses_raw.txt"):
+        return False
+    f = open("broker_responses_raw.txt", "r")
+    packets = f.read().splitlines()
     f.close()
 
     for p in packets:
-        curr = p.split(",")[1].strip(" ")
-        similarity = SequenceMatcher(None, curr, response.hex()).ratio()
+        similarity = SequenceMatcher(None, p, response.hex()).ratio()
         if similarity >= max_response_threshold:
             return True
     return False
 
+# Check for duplicate responses in the stream response log.
+# This includes responses that are too similar, but not exactly
+# duplicates.
+def check_duplicate_stream_response(response):
+    if not path.exists("stream_responses_raw.txt"):
+        return False
+
+    f = open("stream_responses_raw.txt", "r")
+    packets = f.read().splitlines()
+    f.close()
+
+    for p in packets:
+        similarity = SequenceMatcher(None, p, response.decode("latin")).ratio()
+        if similarity >= 0.5:
+            return True
+    return False
+        
 
 def get_last_index():
     try:
@@ -235,7 +253,7 @@ def handle_broker_response(payload, response):
         f.write("Payload, Response\n")
         f.close()
 
-    duplicate_response = check_duplicate_response(response)
+    duplicate_response = check_duplicate_network_response(response)
 
     f = open("broker_responses.txt", "r")
     f_len = len(f.read().splitlines())
@@ -249,9 +267,31 @@ def handle_broker_response(payload, response):
         f.write("%s\n" % response.hex())
         f.close()
 
+def stream_response_has_keyword(resp, payload):
+    f = open("keywords.txt", "r")
+    keywords = f.read().splitlines()
+    for k in keywords:
+        if k.upper() in resp.decode('latin').upper():
+            return True
+    return False
+
 def handle_stream_response(proc):
+    if not path.exists("stream_responses.txt"):
+        f = open("stream_responses.txt", "w")
+        f.write("Payload, Response\n")
+        f.close()
+
     for line in iter(proc.stdout.readline, b''):
-        print(line.decode('latin'))
+        if "current_payload" in globals():
+            has_keyword = stream_response_has_keyword(line, current_payload)
+            duplicate_response = check_duplicate_stream_response(line)
+            if has_keyword and not duplicate_response:
+                f = open("stream_responses.txt", "a")
+                f.write("%s, %s\n" % (current_payload.hex(), line.decode("latin")))
+                f.close()
+                f = open("stream_responses_raw.txt", "a")
+                f.write(line.decode("latin"))
+                f.close()
 
 def start_broker():
     proc = subprocess.Popen([broker_exe], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -351,7 +391,7 @@ r_len = -1
 
 def fuzz(seed):
 
-    global last_fuzz, f_len, r_len
+    global last_fuzz, current_payload, f_len, r_len
 
     random.seed(seed)
 
@@ -403,6 +443,8 @@ def fuzz(seed):
             print("\nFuzzed payload:\t" + payload.hex())     
         exit()
 
+
+    current_payload = payload
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
@@ -463,7 +505,7 @@ def main(argv):
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
     parser.add_argument("-rf", "--response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
-    parser.add_argument("-mrt", "--max_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.7.")
+    parser.add_argument("-mrt", "--max_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.5.")
     parser.add_argument("-mre", "--max_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
     parser.add_argument("-N", "--no_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
@@ -600,7 +642,7 @@ def main(argv):
         if max_response_threshold > 1:
             max_response_threshold = 1
     else:
-        max_response_threshold = 0.7
+        max_response_threshold = 0.5
 
     print("Hello fellow fuzzer :)")
     print("Host: %s, Port: %d" % (host, port))
