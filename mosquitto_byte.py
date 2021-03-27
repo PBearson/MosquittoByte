@@ -118,7 +118,7 @@ def fuzz_target(f, params):
     return f
 
 def source_payload_with_response(params):
-    f = open("broker_responses.txt", "r")
+    f = open(output_directory + "/broker_responses.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
     selection = packets[selection_index].split(",")[0]
@@ -128,7 +128,7 @@ def source_payload_with_response(params):
     return payload, fuzz_target(payload, params), selection_index
 
 def source_payload_with_crash(params):
-    f = open("crashes.txt", "r")
+    f = open(output_directory + "/crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
     selection = packets[selection_index].split(",")[9]
@@ -193,7 +193,7 @@ def get_params():
     return params
 
 def check_duplicate_source(payload):
-    f = open("crashes.txt", "r")
+    f = open(output_directory + "/crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     f.close()
 
@@ -207,9 +207,9 @@ def check_duplicate_source(payload):
 # This includes responses that are too similar, but not exactly
 # duplicates.
 def check_duplicate_network_response(response):
-    if not path.exists("broker_responses_raw.txt"):
+    if not path.exists(output_directory + "/broker_responses_raw.txt"):
         return False
-    f = open("broker_responses_raw.txt", "r")
+    f = open(output_directory + "/broker_responses_raw.txt", "r")
     packets = f.read().splitlines()
     f.close()
 
@@ -223,10 +223,10 @@ def check_duplicate_network_response(response):
 # This includes responses that are too similar, but not exactly
 # duplicates.
 def check_duplicate_stream_response(response):
-    if not path.exists("stream_responses_raw.txt"):
+    if not path.exists(output_directory + "/stream_responses_raw.txt"):
         return False
 
-    f = open("stream_responses_raw.txt", "r")
+    f = open(output_directory + "/stream_responses_raw.txt", "r")
     packets = f.read().splitlines()
     f.close()
 
@@ -239,7 +239,7 @@ def check_duplicate_stream_response(response):
 
 def get_last_index():
     try:
-        f = open("crashes.txt", "r")
+        f = open(output_directory + "/crashes.txt", "r")
         last_entry = f.read().splitlines()[-1]
         last_index = last_entry.split(",")[0]
         f.close()
@@ -248,22 +248,22 @@ def get_last_index():
         return -1
 
 def handle_broker_response(payload, response):
-    if not path.exists("broker_responses.txt"):
-        f = open("broker_responses.txt", "w")
+    if not path.exists(output_directory + "/broker_responses.txt"):
+        f = open(output_directory + "/broker_responses.txt", "w")
         f.write("Payload, Response\n")
         f.close()
 
     duplicate_response = check_duplicate_network_response(response)
 
-    f = open("broker_responses.txt", "r")
+    f = open(output_directory + "/broker_responses.txt", "r")
     f_len = len(f.read().splitlines())
     f.close()
 
     if not duplicate_response and f_len < max_network_response_entries:
-        f = open("broker_responses.txt", "a")
+        f = open(output_directory + "/broker_responses.txt", "a")
         f.write("%s, %s\n" % (payload.hex(), response.hex()))
         f.close()
-        f = open("broker_responses_raw.txt", "a")
+        f = open(output_directory + "/broker_responses_raw.txt", "a")
         f.write("%s\n" % response.hex())
         f.close()
 
@@ -276,8 +276,8 @@ def stream_response_has_keyword(resp, payload):
     return False
 
 def handle_stream_response(proc):
-    if not path.exists("stream_responses.txt"):
-        f = open("stream_responses.txt", "w")
+    if not path.exists(output_directory + "/stream_responses.txt"):
+        f = open(output_directory + "/stream_responses.txt", "w")
         f.write("Payload, Response\n")
         f.close()
 
@@ -286,10 +286,10 @@ def handle_stream_response(proc):
             has_keyword = stream_response_has_keyword(line, current_payload)
             duplicate_response = check_duplicate_stream_response(line)
             if has_keyword and not duplicate_response:
-                f = open("stream_responses.txt", "a")
+                f = open(output_directory + "/stream_responses.txt", "a")
                 f.write("%s, %s" % (current_payload.hex(), line.decode("latin")))
                 f.close()
-                f = open("stream_responses_raw.txt", "a")
+                f = open(output_directory + "/stream_responses_raw.txt", "a")
                 f.write(line.decode("latin"))
                 f.close()
 
@@ -308,8 +308,8 @@ def handle_crash():
             print("No MQTT process appears to be running at %s:%s, and you have not defined a broker exe. You must do one or the other." % (host, port))
             exit()
     else:
-        if not path.exists("crashes.txt"):
-            f = open("crashes.txt", "w")
+        if not path.exists(output_directory + "/crashes.txt"):
+            f = open(output_directory + "/crashes.txt", "w")
             f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source Index, Response Index, Source Frequency, Response Frequency, Payload\n")
             f.close()
 
@@ -328,10 +328,10 @@ def handle_crash():
         index = get_last_index() + 1
         duplicate_source = check_duplicate_source(payload)
         if not duplicate_source:
-            f = open("crashes.txt", "a")
+            f = open(output_directory + "/crashes.txt", "a")
             f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, si, ri, sf, rf, payload.hex()))
             f.close()
-            f = open("crashes_raw.txt", "a")
+            f = open(output_directory + "/crashes_raw.txt", "a")
             f.write("%s\n" % payload.hex())
             f.close()
 
@@ -400,7 +400,7 @@ def fuzz(seed):
     if f_len == -1:
         # Get number of entries in crash file so far
         try:
-            f = open("crashes.txt", "r")
+            f = open(output_directory + "/crashes.txt", "r")
             f_len = len(f.read().splitlines())
             f.close()
         except FileNotFoundError:
@@ -408,7 +408,7 @@ def fuzz(seed):
     if r_len == -1:
         # Get number of entries in response file so far
         try:
-            r = open("broker_responses.txt", "r")
+            r = open(output_directory + "/broker_responses.txt", "r")
             r_len = len(r.read().splitlines())
             r.close()
         except FileNotFoundError:
@@ -506,16 +506,17 @@ def main(argv):
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
     parser.add_argument("-rf", "--response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
     parser.add_argument("-mnt", "--max_network_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.5.")
-    parser.add_argument("-mft", "--max_filestream_response_threshold", help = "Set the maximum similarity threshold for entries in the filestream response file. Default is 0.5.")
+    parser.add_argument("-mft", "--max_filestream_response_threshold", help = "Set the maximum similarity threshold for entries in the filestream response file, from 0 to 1. Default is 0.5.")
     parser.add_argument("-mne", "--max_network_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
     parser.add_argument("-NB", "--no_broker_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
     parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
+    parser.add_argument("-O", "--output_directory", help = "Set the output directory for files generated by the fuzzer. Default is 'outputs.")
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_broker_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_broker_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold, output_directory, output_directory
 
     if(args.host):
         host = args.host
@@ -526,6 +527,13 @@ def main(argv):
         port = int(args.port)
     else:
         port = 1883
+
+    if args.output_directory:
+        output_directory = args.output_directory
+    else:
+        output_directory = "outputs"
+    if not path.exists(output_directory):
+        os.mkdir(output_directory)
 
     if args.broker_exe:
         broker_exe = args.broker_exe
@@ -539,7 +547,7 @@ def main(argv):
     # This arg means we just source from an index in crashes.txt. Handy for verifying a crash quickly.
     if args.index:
         crash_index = int(args.index)
-        f = open("crashes.txt", "r")
+        f = open(output_directory + "/crashes.txt", "r")
         selected_line = f.read().splitlines()[crash_index + 1].split(",")
         f.close()
 
