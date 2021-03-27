@@ -6,6 +6,6 @@ TODO maybe rename broker responses to network responses
 
 TODO need to actually have the fuzzer source from filestream responses
 
-TODO should put all output files in an 'output' directory
-
 TODO should maybe clean up the code
+
+TODO rename stream responses to filestream responses
