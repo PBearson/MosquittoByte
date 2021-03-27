@@ -232,7 +232,7 @@ def check_duplicate_stream_response(response):
 
     for p in packets:
         similarity = SequenceMatcher(None, p, response.decode("latin")).ratio()
-        if similarity >= 0.5:
+        if similarity >= max_filestream_threshold:
             return True
     return False
         
@@ -287,7 +287,7 @@ def handle_stream_response(proc):
             duplicate_response = check_duplicate_stream_response(line)
             if has_keyword and not duplicate_response:
                 f = open("stream_responses.txt", "a")
-                f.write("%s, %s\n" % (current_payload.hex(), line.decode("latin")))
+                f.write("%s, %s" % (current_payload.hex(), line.decode("latin")))
                 f.close()
                 f = open("stream_responses_raw.txt", "a")
                 f.write(line.decode("latin"))
@@ -506,6 +506,7 @@ def main(argv):
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
     parser.add_argument("-rf", "--response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
     parser.add_argument("-mrt", "--max_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.5.")
+    parser.add_argument("-mft", "--max_filestream_threshold", help = "Set the maximum similarity threshold for entries in the filestream response file. Default is 0.5.")
     parser.add_argument("-mre", "--max_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
     parser.add_argument("-N", "--no_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
@@ -514,7 +515,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_response_log, max_response_entries, max_response_threshold
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_response_log, max_response_entries, max_response_threshold, max_filestream_threshold
 
     if(args.host):
         host = args.host
@@ -643,6 +644,15 @@ def main(argv):
             max_response_threshold = 1
     else:
         max_response_threshold = 0.5
+
+    if(args.max_filestream_threshold):
+        max_filestream_threshold = float(args.max_filestream_threshold)
+        if max_filestream_threshold < 0:
+            max_filestream_threshold = 0
+        if max_filestream_threshold > 1:
+            max_filestream_threshold = 1
+    else:
+        max_filestream_threshold = 0.5
 
     print("Hello fellow fuzzer :)")
     print("Host: %s, Port: %d" % (host, port))
