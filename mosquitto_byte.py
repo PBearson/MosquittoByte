@@ -117,7 +117,17 @@ def fuzz_target(f, params):
                 f = remove(f, num_remove_bytes)
     return f
 
-def source_payload_with_response(params):
+def source_payload_with_filestream_response(params):
+    f = open(output_directory + "/filestream_responses.txt", "r")
+    packets = f.read().splitlines()[1:]
+    selection_index = random.randint(0, len(packets) - 1)
+    selection = packets[selection_index].split(",")[0]
+    payload = bytearray.fromhex(selection)
+    f.close()
+
+    return fuzz_target(payload, params), selection_index
+
+def source_payload_with_network_response(params):
     f = open(output_directory + "/network_responses.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
@@ -125,7 +135,7 @@ def source_payload_with_response(params):
     payload = bytearray.fromhex(selection)
     f.close()
     
-    return payload, fuzz_target(payload, params), selection_index
+    return fuzz_target(payload, params), selection_index
 
 def source_payload_with_crash(params):
     f = open(output_directory + "/crashes.txt", "r")
@@ -135,7 +145,7 @@ def source_payload_with_crash(params):
     payload = bytearray.fromhex(selection)
     f.close()
     
-    return payload, fuzz_target(payload, params), selection_index
+    return fuzz_target(payload, params), selection_index
 
 # Return a tuple (a, b) where a and b are between abs_min and abs_max and a <= b
 def get_min_max(abs_min, abs_max):
@@ -407,50 +417,65 @@ def fuzz_payloads(all_payloads, params):
     return all_payloads
 
 # Fuzz MQTT
-f_len = -1
-r_len = -1
+c_len = -1
+nr_len = -1
+fr_len = -1
 
 def fuzz(seed):
 
-    global last_fuzz, current_payload, f_len, r_len
+    global last_fuzz, current_payload, c_len, nr_len, fr_len
 
     random.seed(seed)
 
     params = get_params()
 
-    if f_len == -1:
+    if c_len < 2:
         # Get number of entries in crash file so far
         try:
             f = open(output_directory + "/crashes.txt", "r")
-            f_len = len(f.read().splitlines())
+            c_len = len(f.read().splitlines())
             f.close()
         except FileNotFoundError:
-            f_len = -1
-    if r_len == -1:
-        # Get number of entries in response file so far
+            c_len = -1
+    if nr_len < 2:
+        # Get number of entries in network response file so far
         try:
-            r = open(output_directory + "/network_responses.txt", "r")
-            r_len = len(r.read().splitlines())
-            r.close()
+            f = open(output_directory + "/network_responses.txt", "r")
+            nr_len = len(f.read().splitlines())
+            f.close()
         except FileNotFoundError:
-            r_len = -1
+            nr_len = -1
+    if fr_len < 2:
+        # Get number of entries in filestream response file so far
+        try:
+            f = open(output_directory + "/filestream_responses.txt", "r")
+            fr_len = len(f.read().splitlines())
+            f.close()
+        except FileNotFoundError:
+            fr_len = -1
 
     crash_index = None
     network_response_index = None
     filestream_response_index = None
 
-    # Don't source the fuzzer with a previous crash
-    if (f_len < 2 or not params["sourcing_from_crash"] == 0) and (r_len < 2 or not params["sourcing_from_network"] == 0):
+    # Order of preference for sourcing: crash log > filestream log > network log
+
+    # Don't source the fuzzer with anything
+    if (c_len < 2 or not params["sourcing_from_crash"] == 0) and (nr_len < 2 or not params["sourcing_from_network"] == 0) and (fr_len < 2 or not params["sourcing_from_filestream"] == 0):
         all_payloads = fuzz_payloads(get_all_payloads(), params)
         payload, enumerated_payloads = construct_payload(all_payloads)
 
     # Source with previous crash
-    elif f_len >= 2 and params["sourcing_from_crash"] == 0:
-        unfuzzed_payload, payload, crash_index = source_payload_with_crash(params)
+    elif c_len >= 2 and params["sourcing_from_crash"] == 0:
+        payload, crash_index = source_payload_with_crash(params)
 
-    # Source with broker
+    # Source with filestream response
+    elif fr_len >= 2 and params["sourcing_from_filestream"] == 0:
+        payload, filestream_response_index = source_payload_with_filestream_response(params)
+
+    # Source with network response
     else:
-        unfuzzed_payload, payload, network_response_index = source_payload_with_response(params)
+        payload, network_response_index = source_payload_with_network_response(params)
 
     
     if payload_only:
@@ -477,9 +502,9 @@ def fuzz(seed):
         return
 
     if(verbosity >= 4):
-        print("Crash log index:\t\t", crash_index)
-        print("Network log index:\t\t", network_response_index)
-        print("Filestream log index:\t\t", filestream_response_index)
+        print("Crash log index:\t", crash_index)
+        print("Network log index:\t", network_response_index)
+        print("Filestream log index:\t", filestream_response_index)
 
     if(verbosity >= 1):
         print("Fuzzed payload:\t\t", payload.hex())
@@ -710,6 +735,7 @@ def main(argv):
     print("Source frequency: ", source_frequency)
     print("Network response frequency: ", network_response_frequency)
     print("Filestream response frequency: ", filestream_response_frequency)
+    print("\n")
 
     total_runs = 1
     while True:
