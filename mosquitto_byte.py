@@ -294,9 +294,13 @@ def handle_stream_response(proc):
                 f.close()
 
 def start_broker():
-    proc = subprocess.Popen([broker_exe], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    t = threading.Thread(target=handle_stream_response, args=(proc,))
-    t.start()
+    try:
+        proc = subprocess.Popen(broker_exe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        t = threading.Thread(target=handle_stream_response, args=(proc,))
+        t.start()
+    except FileNotFoundError:
+        print("The broker command/location you provided does not exist.")
+        exit()
 
 def handle_crash():
     if "last_fuzz" not in globals():
@@ -494,7 +498,7 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("-H", "--host", help = "Fuzzing target host. Default is localhost.")
     parser.add_argument("-P", "--port", help = "Fuzzing target port. Default is 1883.")
-    parser.add_argument("-B", "--broker_exe", help = "Set the broker exe location. If the broker crashes, this can be used to restart it.")
+    parser.add_argument("-B", "--broker_exe", help = "Set the broker exe command/location. If the broker crashes, this can be used to restart it.")
     parser.add_argument("-R", "--restart_on_crash", help = "If set, the fuzzer will try to use the option provided by 'broker_exe' to restart the broker.", action = "store_true")
     parser.add_argument("-s", "--seed", help = "Set the seed. If not set by the user, the system time is used as the seed.")
     parser.add_argument("-fd", "--fuzz_delay", help = "Set the delay between each fuzzing attempt. Default is 0.1 seconds.")
@@ -537,12 +541,8 @@ def main(argv):
 
     if args.broker_exe:
         broker_exe = args.broker_exe
-        if not path.exists(broker_exe):
-            print("It seems like the broker exe you provided does not exist.")
-            exit()
-        else:
-            start_broker()
-            time.sleep(0.1)
+        start_broker()
+        time.sleep(0.1)
 
     # This arg means we just source from an index in crashes.txt. Handy for verifying a crash quickly.
     if args.index:
