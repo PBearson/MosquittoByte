@@ -131,7 +131,7 @@ def source_payload_with_crash(params):
     f = open(output_directory + "/crashes.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[9]
+    selection = packets[selection_index].split(",")[11]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -153,27 +153,40 @@ def get_params():
     min_remove, max_remove = get_min_max(0, 10 * fuzz_intensity)
     min_fuzz_rounds, max_fuzz_rounds = get_min_max(0, fuzz_intensity)
 
+    # However non-intuitive, a sourcing value of 0 means that the fuzzer WILL source from that target. For example, if sourcing_from_crash = 0 (i.e., source_frequency = 4), then we will source from the crashes log.
+
     if source_frequency == 0:
-        sourcing = 1
+        sourcing_from_crash = 1
     elif source_frequency == 1:
-        sourcing = random.randint(0, 100)
+        sourcing_from_crash = random.randint(0, 100)
     elif source_frequency == 2:
-        sourcing = random.randint(0, 10)
+        sourcing_from_crash = random.randint(0, 10)
     elif source_frequency == 3:
-        sourcing = random.randint(0, 1)
+        sourcing_from_crash = random.randint(0, 1)
     else:
-        sourcing = 0
+        sourcing_from_crash = 0
 
     if network_response_frequency == 0:
-        responding = 1
+        sourcing_from_network = 1
     elif network_response_frequency == 1:
-        responding = random.randint(0, 100)
+        sourcing_from_network = random.randint(0, 100)
     elif network_response_frequency == 2:
-        responding = random.randint(0, 10)
+        sourcing_from_network = random.randint(0, 10)
     elif network_response_frequency == 3:
-        responding = random.randint(0, 1)
+        sourcing_from_network = random.randint(0, 1)
     else:
-        responding = 0
+        sourcing_from_network = 0
+
+    if filestream_response_frequency == 0:
+        sourcing_from_filestream = 1
+    elif filestream_response_frequency == 1:
+        sourcing_from_filestream = random.randint(0, 100)
+    elif filestream_response_frequency == 2:
+        sourcing_from_filestream = random.randint(0, 10)
+    elif filestream_response_frequency == 3:
+        sourcing_from_filestream = random.randint(0, 1)
+    else:
+        sourcing_from_filestream = 0
 
     params = {
         "min_mutate": min_mutate, 
@@ -187,8 +200,9 @@ def get_params():
         "max_remove": max_remove,
         "min_fuzz_rounds": min_fuzz_rounds,
         "max_fuzz_rounds": max_fuzz_rounds,
-        "sourcing": sourcing,
-        "responding": responding
+        "sourcing_from_crash": sourcing_from_crash,
+        "sourcing_from_network": sourcing_from_network,
+        "sourcing_from_filestream": sourcing_from_filestream
         }
     return params
 
@@ -198,7 +212,7 @@ def check_duplicate_source(payload):
     f.close()
 
     for p in packets:
-        curr = p.split(",")[9].strip(" ")
+        curr = p.split(",")[11].strip(" ")
         if payload.hex() == curr:
             return True
     return False
@@ -315,16 +329,18 @@ def handle_crash():
     else:
         if not path.exists(output_directory + "/crashes.txt"):
             f = open(output_directory + "/crashes.txt", "w")
-            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Source Index, Response Index, Source Frequency, Response Frequency, Payload\n")
+            f.write("Index, Timestamp, Seed, Fuzz intensity, Construct intensity, Crash index, Network response index, Filestream response index, Crash source frequency, Network source frequency, Filestream source frequency, Payload\n")
             f.close()
 
         seed = last_fuzz["seed"]
         fi = last_fuzz["fuzz_intensity"]
         ci = last_fuzz["construct_intensity"]
-        si = last_fuzz["source_index"]
-        ri = last_fuzz["response_index"]
+        si = last_fuzz["crash_index"]
+        nri = last_fuzz["network_response_index"]
+        fri = last_fuzz["filestream_response_index"]
         sf = last_fuzz["source_frequency"]
         nrf = last_fuzz["network_response_frequency"]
+        frf = last_fuzz["filestream_response_frequency"]
         payload = last_fuzz["payload"]
         if verbosity >= 1:
             print("The following payload crashed the program")
@@ -334,7 +350,7 @@ def handle_crash():
         duplicate_source = check_duplicate_source(payload)
         if not duplicate_source:
             f = open(output_directory + "/crashes.txt", "a")
-            f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, si, ri, sf, nrf, payload.hex()))
+            f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, si, nri, fri, sf, nrf, frf, payload.hex()))
             f.close()
             f = open(output_directory + "/crashes_raw.txt", "a")
             f.write("%s\n" % payload.hex())
@@ -419,28 +435,29 @@ def fuzz(seed):
         except FileNotFoundError:
             r_len = -1
 
-    sourced_index = None
-    response_index = None
+    crash_index = None
+    network_response_index = None
+    filestream_response_index = None
 
     # Don't source the fuzzer with a previous crash
-    if (f_len < 2 or not params["sourcing"] == 0) and (r_len < 2 or not params["responding"] == 0):
-        all_payloads = get_all_payloads()
-        all_payloads = fuzz_payloads(all_payloads, params)
+    if (f_len < 2 or not params["sourcing_from_crash"] == 0) and (r_len < 2 or not params["sourcing_from_network"] == 0):
+        all_payloads = fuzz_payloads(get_all_payloads(), params)
         payload, enumerated_payloads = construct_payload(all_payloads)
 
     # Source with previous crash
-    elif f_len >= 2 and params["sourcing"] == 0:
-        unfuzzed_payload, payload, sourced_index = source_payload_with_crash(params)
+    elif f_len >= 2 and params["sourcing_from_crash"] == 0:
+        unfuzzed_payload, payload, crash_index = source_payload_with_crash(params)
 
     # Source with broker
     else:
-        unfuzzed_payload, payload, response_index = source_payload_with_response(params)
+        unfuzzed_payload, payload, network_response_index = source_payload_with_response(params)
 
     
     if payload_only:
-        print("\nSourced index:\t\t" + str(sourced_index))
-        print("Response index:\t\t" + str(response_index))
-        if not params["sourcing"] == 0 and not params["responding"] == 0:
+        print("\nCrash index: " + str(crash_index))
+        print("Network response index: " + str(network_response_index))
+        print("Filestream response index: " + str(filestream_response_frequency))
+        if not params["sourcing_from_crash"] == 0 and not params["sourcing_from_network"] == 0 and not params["sourcing_from_filestream"] == 0:
             print("\nFuzzed payload:\t" + payload.hex())
             for p in enumerated_payloads:
                 print("%s: %s" % (p, enumerated_payloads[p].hex()))
@@ -460,8 +477,9 @@ def fuzz(seed):
         return
 
     if(verbosity >= 4):
-        print("Sourced index:\t\t", sourced_index)
-        print("Response index:\t\t", response_index)
+        print("Crash log index:\t\t", crash_index)
+        print("Network log index:\t\t", network_response_index)
+        print("Filestream log index:\t\t", filestream_response_index)
 
     if(verbosity >= 1):
         print("Fuzzed payload:\t\t", payload.hex())
@@ -488,10 +506,12 @@ def fuzz(seed):
         "seed": seed,
         "fuzz_intensity": fuzz_intensity,
         "construct_intensity": construct_intensity,
-        "source_index": sourced_index,
-        "response_index": response_index,
+        "crash_index": crash_index,
+        "network_response_index": network_response_index,
+        "filestream_response_index": filestream_response_index,
         "source_frequency": source_frequency,
         "network_response_frequency": network_response_frequency,
+        "filestream_response_frequency": filestream_response_frequency,
         "payload": payload
     }    
 
@@ -509,7 +529,8 @@ def main(argv):
     parser.add_argument("-fi", "--fuzz_intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
-    parser.add_argument("-nrf", "--network_response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
+    parser.add_argument("-nrf", "--network_response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique network response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
+    parser.add_argument("-frf", "--filestream_response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered an anamolous response to stdout or stderr, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
     parser.add_argument("-mnt", "--max_network_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.5.")
     parser.add_argument("-mft", "--max_filestream_response_threshold", help = "Set the maximum similarity threshold for entries in the filestream response file, from 0 to 1. Default is 0.5.")
     parser.add_argument("-mne", "--max_network_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
@@ -521,7 +542,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, network_response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_network_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold, output_directory, output_directory
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, network_response_frequency, filestream_response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_network_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold, output_directory, output_directory
 
     if(args.host):
         host = args.host
@@ -550,8 +571,9 @@ def main(argv):
         seed = int(selected_line[2])
         fuzz_intensity = int(selected_line[3])
         construct_intensity = int(selected_line[4])
-        source_frequency = int(selected_line[7])
-        network_response_frequency = int(selected_line[8])
+        source_frequency = int(selected_line[8])
+        network_response_frequency = int(selected_line[9])
+        filestream_response_frequency = int(selected_line[10])
     else:
         if(args.seed):  
             seed = int(args.seed)
@@ -592,16 +614,16 @@ def main(argv):
             if network_response_frequency > 4:
                 network_response_frequency = 4
         else:
-            network_response_frequency = 3
+            network_response_frequency = 2
 
-
-    if(args.restart_on_crash):
-        restart_on_crash = True
-        if "broker_exe" not in globals():
-            print("You cannot restart on crash if the broker exe is not defined.")
-            exit()
-    else:
-        restart_on_crash = False    
+        if(args.filestream_response_frequency):
+            filestream_response_frequency = int(args.filestream_response_frequency)
+            if filestream_response_frequency < 0:
+                filestream_response_frequency = 0
+            if filestream_response_frequency > 4:
+                filestream_response_frequency = 4
+        else:
+            filestream_response_frequency = 2  
 
     if(args.fuzz_delay):
         fuzz_delay = float(args.fuzz_delay)
@@ -658,14 +680,6 @@ def main(argv):
     else:
         max_filestream_response_threshold = 0.5
 
-    print("Hello fellow fuzzer :)")
-    print("Host: %s, Port: %d" % (host, port))
-    print("Base seed: ", seed)
-    print("Fuzz Intensity: ", fuzz_intensity)
-    print("Construct intensity: ", construct_intensity)
-    print("Source frequency: ", source_frequency)
-    print("Network response frequency: ", network_response_frequency)
-
     if(args.payload_only):
         payload_only = True
         random.seed(seed)
@@ -678,6 +692,24 @@ def main(argv):
         broker_exe = args.broker_exe
         start_broker()
         time.sleep(0.1)
+
+    if(args.restart_on_crash):
+        restart_on_crash = True
+        if "broker_exe" not in globals():
+            print("You cannot restart on crash if the broker exe is not defined.")
+            exit()
+    else:
+        restart_on_crash = False  
+
+
+        print("Hello fellow fuzzer :)")
+    print("Host: %s, Port: %d" % (host, port))
+    print("Base seed: ", seed)
+    print("Fuzz Intensity: ", fuzz_intensity)
+    print("Construct intensity: ", construct_intensity)
+    print("Source frequency: ", source_frequency)
+    print("Network response frequency: ", network_response_frequency)
+    print("Filestream response frequency: ", filestream_response_frequency)
 
     total_runs = 1
     while True:
