@@ -237,10 +237,10 @@ def check_duplicate_network_response(response):
 # This includes responses that are too similar, but not exactly
 # duplicates.
 def check_duplicate_stream_response(response):
-    if not path.exists(output_directory + "/stream_responses_raw.txt"):
+    if not path.exists(output_directory + "/filestream_responses_raw.txt"):
         return False
 
-    f = open(output_directory + "/stream_responses_raw.txt", "r")
+    f = open(output_directory + "/filestream_responses_raw.txt", "r")
     packets = f.read().splitlines()
     f.close()
 
@@ -290,8 +290,8 @@ def stream_response_has_keyword(resp, payload):
     return False
 
 def handle_stream_response(proc):
-    if not path.exists(output_directory + "/stream_responses.txt"):
-        f = open(output_directory + "/stream_responses.txt", "w")
+    if not path.exists(output_directory + "/filestream_responses.txt"):
+        f = open(output_directory + "/filestream_responses.txt", "w")
         f.write("Payload, Response\n")
         f.close()
 
@@ -300,10 +300,10 @@ def handle_stream_response(proc):
             has_keyword = stream_response_has_keyword(line, current_payload)
             duplicate_response = check_duplicate_stream_response(line)
             if has_keyword and not duplicate_response:
-                f = open(output_directory + "/stream_responses.txt", "a")
+                f = open(output_directory + "/filestream_responses.txt", "a")
                 f.write("%s, %s" % (current_payload.hex(), line.decode("latin")))
                 f.close()
-                f = open(output_directory + "/stream_responses_raw.txt", "a")
+                f = open(output_directory + "/filestream_responses_raw.txt", "a")
                 f.write(line.decode("latin"))
                 f.close()
 
