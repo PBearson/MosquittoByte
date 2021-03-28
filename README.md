@@ -5,3 +5,5 @@ We may want to modify the crash behavior so that it only logs unique crashes, i.
 TODO should maybe clean up the code
 
 TODO should implement some kind of check in broker_start so that it only returns when the broker has started (since some brokers can initialize slowly)
+
+TODO need to add an option to not log to the filestream log
