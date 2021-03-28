@@ -118,7 +118,7 @@ def fuzz_target(f, params):
     return f
 
 def source_payload_with_response(params):
-    f = open(output_directory + "/broker_responses.txt", "r")
+    f = open(output_directory + "/network_responses.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
     selection = packets[selection_index].split(",")[0]
@@ -164,13 +164,13 @@ def get_params():
     else:
         sourcing = 0
 
-    if response_frequency == 0:
+    if network_response_frequency == 0:
         responding = 1
-    elif response_frequency == 1:
+    elif network_response_frequency == 1:
         responding = random.randint(0, 100)
-    elif response_frequency == 2:
+    elif network_response_frequency == 2:
         responding = random.randint(0, 10)
-    elif response_frequency == 3:
+    elif network_response_frequency == 3:
         responding = random.randint(0, 1)
     else:
         responding = 0
@@ -207,9 +207,9 @@ def check_duplicate_source(payload):
 # This includes responses that are too similar, but not exactly
 # duplicates.
 def check_duplicate_network_response(response):
-    if not path.exists(output_directory + "/broker_responses_raw.txt"):
+    if not path.exists(output_directory + "/network_responses_raw.txt"):
         return False
-    f = open(output_directory + "/broker_responses_raw.txt", "r")
+    f = open(output_directory + "/network_responses_raw.txt", "r")
     packets = f.read().splitlines()
     f.close()
 
@@ -247,23 +247,23 @@ def get_last_index():
     except (FileNotFoundError, ValueError):
         return -1
 
-def handle_broker_response(payload, response):
-    if not path.exists(output_directory + "/broker_responses.txt"):
-        f = open(output_directory + "/broker_responses.txt", "w")
+def handle_network_response(payload, response):
+    if not path.exists(output_directory + "/network_responses.txt"):
+        f = open(output_directory + "/network_responses.txt", "w")
         f.write("Payload, Response\n")
         f.close()
 
     duplicate_response = check_duplicate_network_response(response)
 
-    f = open(output_directory + "/broker_responses.txt", "r")
+    f = open(output_directory + "/network_responses.txt", "r")
     f_len = len(f.read().splitlines())
     f.close()
 
     if not duplicate_response and f_len < max_network_response_entries:
-        f = open(output_directory + "/broker_responses.txt", "a")
+        f = open(output_directory + "/network_responses.txt", "a")
         f.write("%s, %s\n" % (payload.hex(), response.hex()))
         f.close()
-        f = open(output_directory + "/broker_responses_raw.txt", "a")
+        f = open(output_directory + "/network_responses_raw.txt", "a")
         f.write("%s\n" % response.hex())
         f.close()
 
@@ -295,9 +295,10 @@ def handle_stream_response(proc):
 
 def start_broker():
     try:
+        global broker_thread
         proc = subprocess.Popen(broker_exe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        t = threading.Thread(target=handle_stream_response, args=(proc,))
-        t.start()
+        broker_thread = threading.Thread(target=handle_stream_response, args=(proc,))
+        broker_thread.start()
     except FileNotFoundError:
         print("The broker command/location you provided does not exist.")
         exit()
@@ -323,7 +324,7 @@ def handle_crash():
         si = last_fuzz["source_index"]
         ri = last_fuzz["response_index"]
         sf = last_fuzz["source_frequency"]
-        rf = last_fuzz["response_frequency"]
+        nrf = last_fuzz["network_response_frequency"]
         payload = last_fuzz["payload"]
         if verbosity >= 1:
             print("The following payload crashed the program")
@@ -333,7 +334,7 @@ def handle_crash():
         duplicate_source = check_duplicate_source(payload)
         if not duplicate_source:
             f = open(output_directory + "/crashes.txt", "a")
-            f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, si, ri, sf, rf, payload.hex()))
+            f.write("%s, %s, %s, %s, %s, %s, %s, %s, %s, %s\n" % (index, datetime.now(), seed, fi, ci, si, ri, sf, nrf, payload.hex()))
             f.close()
             f = open(output_directory + "/crashes_raw.txt", "a")
             f.write("%s\n" % payload.hex())
@@ -412,7 +413,7 @@ def fuzz(seed):
     if r_len == -1:
         # Get number of entries in response file so far
         try:
-            r = open(output_directory + "/broker_responses.txt", "r")
+            r = open(output_directory + "/network_responses.txt", "r")
             r_len = len(r.read().splitlines())
             r.close()
         except FileNotFoundError:
@@ -470,10 +471,10 @@ def fuzz(seed):
     if ready[0]:
         try:
             response = s.recv(1024)
-            if not no_broker_response_log:
-                handle_broker_response(payload, response)
+            if not no_network_response_log:
+                handle_network_response(payload, response)
             if verbosity >= 5:
-                print("Broker response:\t", response.hex())
+                print("Network response:\t", response.hex())
         except ConnectionResetError:
             if verbosity >= 4:
                 print("Error:\t\t\t Broker reset connection.")
@@ -490,7 +491,7 @@ def fuzz(seed):
         "source_index": sourced_index,
         "response_index": response_index,
         "source_frequency": source_frequency,
-        "response_frequency": response_frequency,
+        "network_response_frequency": network_response_frequency,
         "payload": payload
     }    
 
@@ -508,11 +509,11 @@ def main(argv):
     parser.add_argument("-fi", "--fuzz_intensity", help = "Set the intensity of the fuzzer, from 0 to 10. 0 means packets are not fuzzed at all. Default is 3.")
     parser.add_argument("-ci", "--construct_intensity", help = "Set the intensity of the payload constructer, from 0 to 3. The constructor decides what order to send packets. For example, 0 means all packets begin with CONNECT and end wth DISCONNECT. Default is 0.")
     parser.add_argument("-sf", "--source_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a crash, from 0 to 4. 0 means never source and 4 means always source. Default is 2.")
-    parser.add_argument("-rf", "--response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
+    parser.add_argument("-nrf", "--network_response_frequency", help = "Set the frequency of sourcing the fuzzer's input with a packet that previously triggered a unique response from the broker, from 0 to 4. 0 means never source and 4 means always source. Default is 3.")
     parser.add_argument("-mnt", "--max_network_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.5.")
     parser.add_argument("-mft", "--max_filestream_response_threshold", help = "Set the maximum similarity threshold for entries in the filestream response file, from 0 to 1. Default is 0.5.")
     parser.add_argument("-mne", "--max_network_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
-    parser.add_argument("-NB", "--no_broker_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
+    parser.add_argument("-nnl", "--no_network_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
     parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
@@ -520,7 +521,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_broker_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold, output_directory, output_directory
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, network_response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_network_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold, output_directory, output_directory
 
     if(args.host):
         host = args.host
@@ -539,11 +540,6 @@ def main(argv):
     if not path.exists(output_directory):
         os.mkdir(output_directory)
 
-    if args.broker_exe:
-        broker_exe = args.broker_exe
-        start_broker()
-        time.sleep(0.1)
-
     # This arg means we just source from an index in crashes.txt. Handy for verifying a crash quickly.
     if args.index:
         crash_index = int(args.index)
@@ -555,7 +551,7 @@ def main(argv):
         fuzz_intensity = int(selected_line[3])
         construct_intensity = int(selected_line[4])
         source_frequency = int(selected_line[7])
-        response_frequency = int(selected_line[8])
+        network_response_frequency = int(selected_line[8])
     else:
         if(args.seed):  
             seed = int(args.seed)
@@ -589,14 +585,14 @@ def main(argv):
         else:
             source_frequency = 2
 
-        if(args.response_frequency):
-            response_frequency = int(args.response_frequency)
-            if response_frequency < 0:
-                response_frequency = 0
-            if response_frequency > 4:
-                response_frequency = 4
+        if(args.network_response_frequency):
+            network_response_frequency = int(args.network_response_frequency)
+            if network_response_frequency < 0:
+                network_response_frequency = 0
+            if network_response_frequency > 4:
+                network_response_frequency = 4
         else:
-            response_frequency = 3
+            network_response_frequency = 3
 
 
     if(args.restart_on_crash):
@@ -634,10 +630,10 @@ def main(argv):
     else:
         verbosity = 1
 
-    if(args.no_broker_response_log):
-        no_broker_response_log = True
+    if(args.no_network_response_log):
+        no_network_response_log = True
     else:
-        no_broker_response_log = False
+        no_network_response_log = False
 
     if(args.max_network_response_entries):
         max_network_response_entries = int(args.max_network_response_entries)
@@ -668,7 +664,7 @@ def main(argv):
     print("Fuzz Intensity: ", fuzz_intensity)
     print("Construct intensity: ", construct_intensity)
     print("Source frequency: ", source_frequency)
-    print("Response frequency: ", response_frequency)
+    print("Network response frequency: ", network_response_frequency)
 
     if(args.payload_only):
         payload_only = True
@@ -677,6 +673,11 @@ def main(argv):
         print("\nYour params: ", params)
     else:
         payload_only = False
+
+    if args.broker_exe and not payload_only:
+        broker_exe = args.broker_exe
+        start_broker()
+        time.sleep(0.1)
 
     total_runs = 1
     while True:
@@ -699,7 +700,7 @@ def main(argv):
         if 'max_runs' in locals():
             max_runs -= 1
             if max_runs <= 0:
-                break
+                exit()
 
         if total_runs % 1000 == 0 and autonomous_intensity:
             fuzz_intensity = (fuzz_intensity + 1) % 11
