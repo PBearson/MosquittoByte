@@ -119,7 +119,7 @@ def fuzz_target(f, params):
 
 def source_payload_with_filestream_response(params):
     f = open(output_directory + "/filestream_responses.txt", "r")
-    packets = f.read().splitlines()[1:]
+    packets = f.readlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
     selection = packets[selection_index].split(",")[0]
     payload = bytearray.fromhex(selection)
@@ -255,7 +255,7 @@ def check_duplicate_stream_response(response):
     f.close()
 
     for p in packets:
-        similarity = SequenceMatcher(None, p, response.decode("latin")).ratio()
+        similarity = SequenceMatcher(None, p, response).ratio()
         if similarity >= max_filestream_response_threshold:
             return True
     return False
@@ -295,7 +295,7 @@ def stream_response_has_keyword(resp, payload):
     f = open("keywords.txt", "r")
     keywords = f.read().splitlines()
     for k in keywords:
-        if k.upper() in resp.decode('latin').upper():
+        if k.upper() in resp.upper():
             return True
     return False
 
@@ -306,20 +306,23 @@ def handle_stream_response(proc):
         f.close()
 
     for line in iter(proc.stdout.readline, b''):
+
+        # Remove in-line EOL characters
+        line = line.decode("latin").replace(r"\n", "").replace(r"\r", "")
+
         if "current_payload" in globals():
             has_keyword = stream_response_has_keyword(line, current_payload)
             duplicate_response = check_duplicate_stream_response(line)
             if has_keyword and not duplicate_response:
                 f = open(output_directory + "/filestream_responses.txt", "a")
-                f.write("%s, %s" % (current_payload.hex(), line.decode("latin")))
+                f.write("%s, %s" % (current_payload.hex(),line))
                 f.close()
                 f = open(output_directory + "/filestream_responses_raw.txt", "a")
-                f.write(line.decode("latin"))
+                f.write(line)
                 f.close()
 
 def start_broker():
     try:
-        global broker_thread
         proc = subprocess.Popen(broker_exe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         broker_thread = threading.Thread(target=handle_stream_response, args=(proc,))
         broker_thread.start()
