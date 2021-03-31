@@ -326,6 +326,18 @@ def start_broker():
         proc = subprocess.Popen(broker_exe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         broker_thread = threading.Thread(target=handle_stream_response, args=(proc,))
         broker_thread.start()
+
+        if verbosity > 1:
+            print("Waiting for broker to start")
+        while True:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                s.connect((host, port))
+                s.close()
+                break
+            except ConnectionRefusedError:
+                time.sleep(0.1)
+
     except FileNotFoundError:
         print("The broker command/location you provided does not exist.")
         exit()
