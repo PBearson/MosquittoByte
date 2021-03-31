@@ -327,7 +327,7 @@ def start_broker():
         broker_thread = threading.Thread(target=handle_stream_response, args=(proc,))
         broker_thread.start()
 
-        if verbosity > 1:
+        if verbosity >= 1:
             print("Waiting for broker to start")
         while True:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
