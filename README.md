@@ -7,3 +7,5 @@ Instead of steadily incrementing the intensity when autonomous option is used, j
 TODO should maybe clean up the code
 
 TODO need to add an option to not log to the filestream log
+
+TODO need to add timestamp to filestream_responses
