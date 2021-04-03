@@ -3,6 +3,6 @@ error
 exception
 fatal
 crash
-unexpectedly
+unexpected
 malformed
 null
