@@ -574,7 +574,7 @@ def main(argv):
     parser.add_argument("-mnt", "--max_network_response_threshold", help = "Set the maximum similarity threshold for entries in the broker response file, from 0 to 1. For example, a threshold of 0.3 means entries will be NOT logged if they are at least 30 percent similar to any other entry. Default is 0.5.")
     parser.add_argument("-mft", "--max_filestream_response_threshold", help = "Set the maximum similarity threshold for entries in the filestream response file, from 0 to 1. Default is 0.5.")
     parser.add_argument("-mne", "--max_network_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
-    parser.add_argument("-nnl", "--no_network_response_log", help = "If set, do not log unique responses from the broker to the broker responses file.", action="store_true")
+    parser.add_argument("-nnl", "--no_network_response_log", help = "If set, do not log network responses from the broker.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity changes every 1000 runs and the construct intensity changes every 250 runs.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
     parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
