@@ -3,3 +3,4 @@ network*
 filestream*
 .vscode
 tasklist.txt
+__pycache__
