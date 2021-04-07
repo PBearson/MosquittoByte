@@ -324,8 +324,9 @@ def handle_stream_response(proc):
 def start_broker():
     try:
         proc = subprocess.Popen(broker_exe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        broker_thread = threading.Thread(target=handle_stream_response, args=(proc,))
-        broker_thread.start()
+        if not no_filestream_response_log:
+            broker_thread = threading.Thread(target=handle_stream_response, args=(proc,))
+            broker_thread.start()
 
         if verbosity >= 1:
             print("Waiting for broker to start")
@@ -575,6 +576,7 @@ def main(argv):
     parser.add_argument("-mft", "--max_filestream_response_threshold", help = "Set the maximum similarity threshold for entries in the filestream response file, from 0 to 1. Default is 0.5.")
     parser.add_argument("-mne", "--max_network_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
     parser.add_argument("-nnl", "--no_network_response_log", help = "If set, do not log network responses from the broker.", action="store_true")
+    parser.add_argument("-nfl", "--no_filestream_response_log", help="If swr, do not log filestream responses from the broker.", action="store_true")
     parser.add_argument("-a", "--autonomous_intensity", help = "If set, the fuzz intensity and construct intensity changes randomly every run.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
     parser.add_argument("-p", "--payload_only", help = "Do not fuzz. Simply return the payload before and after it is fuzzed. Also return the params", action = "store_true")
@@ -582,7 +584,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, network_response_frequency, filestream_response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_network_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold, output_directory, output_directory
+    global host, port, broker_exe, fuzz_intensity, construct_intensity, source_frequency, network_response_frequency, filestream_response_frequency, construct_payload, payload_only, verbosity, response_delay, restart_on_crash, no_network_response_log, no_filestream_response_log, max_network_response_entries, max_network_response_threshold, max_filestream_response_threshold, output_directory, output_directory
 
     if(args.host):
         host = args.host
@@ -696,6 +698,11 @@ def main(argv):
         no_network_response_log = True
     else:
         no_network_response_log = False
+
+    if(args.no_filestream_response_log):
+        no_filestream_response_log = True
+    else:
+        no_filestream_response_log = False
 
     if(args.max_network_response_entries):
         max_network_response_entries = int(args.max_network_response_entries)
