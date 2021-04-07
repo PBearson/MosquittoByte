@@ -58,4 +58,4 @@ python mosquitto_byte -aci  # Construct intensity is randomized on every iterati
 
 - [Mosquitto segmentation fault](https://github.com/eclipse/mosquitto/issues/2163). Patched in v2.0.10.
 
-This section will be gradually updated as the software discovers more bugs.
+This section will (hopefully) be gradually updated as Mosquitto Byte discovers more bugs.
