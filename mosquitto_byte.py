@@ -121,17 +121,17 @@ def source_payload_with_filestream_response(params):
     f = open(output_directory + "/filestream_responses.txt", "r")
     packets = f.readlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[0]
+    selection = packets[selection_index].split(",")[1]
     payload = bytearray.fromhex(selection)
     f.close()
 
     return fuzz_target(payload, params), selection_index
 
 def source_payload_with_network_response(params):
-    f = open(output_directory + "/network_responses_raw.txt", "r")
-    packets = f.read().splitlines()
+    f = open(output_directory + "/network_responses.txt", "r")
+    packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index]
+    selection = packets[selection_index].split(",")[1]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -302,7 +302,7 @@ def stream_response_has_keyword(resp, payload):
 def handle_filestream_response(proc):
     if not path.exists(output_directory + "/filestream_responses.txt"):
         f = open(output_directory + "/filestream_responses.txt", "w")
-        f.write("Payload, Response\n")
+        f.write("Timestamp, Payload, Response\n")
         f.close()
 
     for line in iter(proc.stdout.readline, b''):
@@ -315,7 +315,7 @@ def handle_filestream_response(proc):
             duplicate_response = check_duplicate_stream_response(line)
             if has_keyword and not duplicate_response:
                 f = open(output_directory + "/filestream_responses.txt", "a")
-                f.write("%s, %s" % (current_payload.hex(),line))
+                f.write("%s, %s, %s" % (datetime.now(), current_payload.hex(), line))
                 f.close()
                 f = open(output_directory + "/filestream_responses_raw.txt", "a")
                 f.write(line)
