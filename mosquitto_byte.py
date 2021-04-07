@@ -299,7 +299,7 @@ def stream_response_has_keyword(resp, payload):
             return True
     return False
 
-def handle_stream_response(proc):
+def handle_filestream_response(proc):
     if not path.exists(output_directory + "/filestream_responses.txt"):
         f = open(output_directory + "/filestream_responses.txt", "w")
         f.write("Payload, Response\n")
@@ -325,7 +325,7 @@ def start_broker():
     try:
         proc = subprocess.Popen(broker_exe.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if not no_filestream_response_log:
-            broker_thread = threading.Thread(target=handle_stream_response, args=(proc,))
+            broker_thread = threading.Thread(target=handle_filestream_response, args=(proc,))
             broker_thread.start()
 
         if verbosity >= 1:
