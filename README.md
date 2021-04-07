@@ -46,7 +46,16 @@ The fuzz intensity (e.g., percentage of packets which are fuzzed) is ranked from
 python mosquitto_byte -fi 9 -ci 3 # Sets fuzz intensity to 9 and construct intensity to 3
 ```
 
+```
+python mosquitto_byte -afi  # Fuzz intensity is randomized on every iteration
+```
+
+```
+python mosquitto_byte -aci  # Construct intensity is randomized on every iteration
+```
 
 ## Findings
+
+- [Mosquitto segmentation fault](https://github.com/eclipse/mosquitto/issues/2163). Patched in v2.0.10.
 
 This section will be gradually updated as the software discovers more bugs.
