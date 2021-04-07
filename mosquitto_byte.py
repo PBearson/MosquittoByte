@@ -246,7 +246,7 @@ def check_duplicate_network_response(response):
 # Check for duplicate responses in the stream response log.
 # This includes responses that are too similar, but not exactly
 # duplicates.
-def check_duplicate_stream_response(response):
+def check_duplicate_filestream_response(response):
     if not path.exists(output_directory + "/filestream_responses_raw.txt"):
         return False
 
@@ -312,7 +312,7 @@ def handle_filestream_response(proc):
 
         if "current_payload" in globals():
             has_keyword = stream_response_has_keyword(line, current_payload)
-            duplicate_response = check_duplicate_stream_response(line)
+            duplicate_response = check_duplicate_filestream_response(line)
             if has_keyword and not duplicate_response:
                 f = open(output_directory + "/filestream_responses.txt", "a")
                 f.write("%s, %s, %s" % (datetime.now(), current_payload.hex(), line))
