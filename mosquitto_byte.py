@@ -128,10 +128,10 @@ def source_payload_with_filestream_response(params):
     return fuzz_target(payload, params), selection_index
 
 def source_payload_with_network_response(params):
-    f = open(output_directory + "/network_responses.txt", "r")
-    packets = f.read().splitlines()[1:]
+    f = open(output_directory + "/network_responses_raw.txt", "r")
+    packets = f.read().splitlines()
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[1]
+    selection = packets[selection_index]
     payload = bytearray.fromhex(selection)
     f.close()
     
