@@ -40,6 +40,12 @@ The fuzzer waits about 100 ms between each fuzzing attempt. You can change this 
 python mosquitto_byte -fd 0.01  # Wait 10 ms
 ```
 
+The fuzz intensity (e.g., percentage of packets which are fuzzed) is ranked from 0 to 10, while the construct intensity (e.g., the ordering of packets) is ranked from 0 to 3. By default, the fuzz intensity is set to 3 while the construct intensity is set to 0. Both are configurable:
+
+```
+python mosquitto_byte -fi 9 -ci 3 # Sets fuzz intensity to 9 and construct intensity to 3
+```
+
 
 ## Findings
 
