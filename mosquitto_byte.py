@@ -131,7 +131,7 @@ def source_payload_with_network_response(params):
     f = open(output_directory + "/network_responses.txt", "r")
     packets = f.read().splitlines()[1:]
     selection_index = random.randint(0, len(packets) - 1)
-    selection = packets[selection_index].split(",")[0]
+    selection = packets[selection_index].split(",")[1]
     payload = bytearray.fromhex(selection)
     f.close()
     
@@ -274,7 +274,7 @@ def get_last_index():
 def handle_network_response(payload, response):
     if not path.exists(output_directory + "/network_responses.txt"):
         f = open(output_directory + "/network_responses.txt", "w")
-        f.write("Payload, Response\n")
+        f.write("Timestamp, Payload, Response\n")
         f.close()
 
     duplicate_response = check_duplicate_network_response(response)
@@ -285,7 +285,7 @@ def handle_network_response(payload, response):
 
     if not duplicate_response and f_len < max_network_response_entries:
         f = open(output_directory + "/network_responses.txt", "a")
-        f.write("%s, %s\n" % (payload.hex(), response.hex()))
+        f.write("%s, %s, %s\n" % (datetime.now(), payload.hex(), response.hex()))
         f.close()
         f = open(output_directory + "/network_responses_raw.txt", "a")
         f.write("%s\n" % response.hex())
