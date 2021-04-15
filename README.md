@@ -46,7 +46,42 @@ The fuzz intensity (e.g., percentage of packets which are fuzzed) is ranked from
 python mosquitto_byte -fi 9 -ci 3 # Sets fuzz intensity to 9 and construct intensity to 3
 ```
 
+```
+python mosquitto_byte -afi  # Fuzz intensity is randomized on every iteration
+```
+
+```
+python mosquitto_byte -aci  # Construct intensity is randomized on every iteration
+```
+
+You can start the broker from within the fuzzer. Then you will capture output from stdout/stderr that will be added to the corpus.
+
+```
+python mosquitto_byte -B "/usr/sbin/<broker>"  # Start the broker and log output from stdout/stderr
+```
+
+```
+python mosquitto_byte -B "/usr/sbin/<broker>" -R  # Restart the broker in case it crashes.
+```
+
+But what if the broker is not a simple executable or shell script, or what if the filestream output is separate from the broker process? These cases can be handled as well:
+
+```
+python mosquitto_byte -B "java -jar <jarfile>"  # Run a JAR application
+```
+
+```
+python mosquitto_byte -B "docker attach <container>"  # Read output from a Docker container.
+```
+
+You can run the fuzzer for a fixed number of iterations:
+
+```
+python mosquitto_byte -m 1000 # Terminate after 1000 iterations
+```
 
 ## Findings
 
-This section will be gradually updated as the software discovers more bugs.
+- [Mosquitto segmentation fault](https://github.com/eclipse/mosquitto/issues/2163). Patched in v2.0.10.
+
+This section will (hopefully) be gradually updated as Mosquitto Byte discovers more bugs.
