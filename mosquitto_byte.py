@@ -518,6 +518,8 @@ def fuzz(seed):
     except ConnectionRefusedError:
         handle_crash()
         return
+    except ConnectionResetError:
+        return
 
     if(verbosity >= 4):
         print("Crash log index:\t", crash_index)
