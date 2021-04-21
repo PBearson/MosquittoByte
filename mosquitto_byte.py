@@ -390,10 +390,7 @@ def handle_crash():
         if not restart_on_crash:
             exit()
         else:
-            subprocess.Popen([broker_exe], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            if(verbosity >= 3):
-                print("Waiting a second to restart the broker")
-            time.sleep(0.01)
+            start_broker()
 
 # Construct the payload according the construct intensity
 def construct_payload(all_payloads):
