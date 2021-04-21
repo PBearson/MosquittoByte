@@ -582,7 +582,7 @@ def main(argv):
     parser.add_argument("-mne", "--max_network_response_entries", help = "Set the maximum number of entries allowed in the broker responses file. Fuzzer will not write to this file if the number of entries exceeds this value. Default is 150.")
     parser.add_argument("-flp", "--filestream_logging_preference", help = "Set the preference of logging stdout/stderr responses from the broker. 0 means exclude responses that contain keywords in the keywords.txt file. 1 means exclude responses that do not contain keywords. 2 means do not exclude any responses. Default is 2.")
     parser.add_argument("-nnl", "--no_network_response_log", help = "If set, do not log network responses from the broker.", action="store_true")
-    parser.add_argument("-nfl", "--no_filestream_response_log", help="If swr, do not log filestream responses from the broker.", action="store_true")
+    parser.add_argument("-nfl", "--no_filestream_response_log", help="If set, do not log filestream responses from the broker.", action="store_true")
     parser.add_argument("-afi", "--auto_fuzz_intensity", help = "If set, the fuzz intensity changes randomly every run.", action="store_true")
     parser.add_argument("-aci", "--auto_construct_intensity", help="If set, the construct intensity changes randomly every run.", action="store_true")
     parser.add_argument("-v", "--verbosity", help = "Set verbosity, from 0 to 5. 0 means nothing is printed. Default is 1.")
