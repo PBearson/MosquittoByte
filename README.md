@@ -84,4 +84,4 @@ python mosquitto_byte -m 1000 # Terminate after 1000 iterations
 
 - [Mosquitto segmentation fault](https://github.com/eclipse/mosquitto/issues/2163). Patched in v2.0.10.
 
-This section will (hopefully) be gradually updated as Mosquitto Byte discovers more bugs.
+This section will (hopefully) be gradually updated as MosquittoByte discovers more bugs.
