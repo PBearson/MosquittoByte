@@ -1,6 +1,3 @@
-# TODO add toList() and toString() super functions
-# TODO add payload, payload_length objects
-
 class Packet:
     def __init__(self):
         self.payload = []
