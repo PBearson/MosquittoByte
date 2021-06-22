@@ -22,6 +22,11 @@ class Packet:
     def getByteLength(self):
         return len(self.toString()) / 2
 
+    def toVariableByte(self, byteString):
+        if len(byteString) % 2 == 1:
+            return "0" + byteString
+        return byteString
+
     def sendToBroker(self, host, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
