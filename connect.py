@@ -2,7 +2,6 @@ import random
 import binascii
 import string
 import time
-import socket
 
 from packet import Packet
 
@@ -24,7 +23,7 @@ class ConnectProperties(Packet):
         self.authentication_method_len = random.randint(1, 20)
         self.authentication_method = ["%.2x" % 0x15, "%.2x" % self.authentication_method_len, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.authentication_method_len)]]
         self.authentication_data_len = random.randint(1, 100)
-        self.authentication_data = ["%.2x" % 0x16, "%.2x" % self.authentication_data_len, "%.2x" % random.getrandbits(8 * self.authentication_data_len)]
+        self.authentication_data = ["%.2x" % 0x16, "%.2x" % self.authentication_data_len, ["%.2x" % random.getrandbits(8) for i in range(self.authentication_data_len)]]
 
         self.payload = [self.property_length]
         properties_bitmap = random.getrandbits(9)
@@ -212,20 +211,12 @@ def test():
     host = "127.0.0.1"
     port = 1883
 
-    while True:
+    for i in range(100):
         packet = Connect()
         packet.printComponentsAsList()
         packet.printComponentSizes()     
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((host, port))
-        try:
-            s.send(bytearray.fromhex(packet.toString()))
-        except ValueError:
-            print("Error caused by following payload:")
-            print(packet.toString())
-            exit(0)
-        s.close()
-        time.sleep(0.25)
+        packet.sendToBroker(host, port)
+        time.sleep(0.1)
 
 if __name__ == "__main__":
     test()
