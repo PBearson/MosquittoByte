@@ -16,18 +16,18 @@ class ConnectProperties(Packet):
         self.topic_alias_maximum = ["%.2x" % 0x22, "%.4x" % random.getrandbits(16)]
         self.request_response_information = ["%.2x" % 0x19, "%.2x" % random.getrandbits(1)]
         self.request_problem_information = ["%.2x" % 0x17, "%.2x" % random.getrandbits(1)]
-        self.user_property_name_len = 1#random.randint(1, 20)
+        self.user_property_name_len = random.randint(1, 20)
         self.user_property_name = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_name_len)]
-        self.user_property_value_len = 1#random.randint(1, 20)
+        self.user_property_value_len = random.randint(1, 20)
         self.user_property_value = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_value_len)]
         self.user_property = ["%.2x" % 0x26, "%.2x" % self.user_property_name_len, self.user_property_name, "%.2x" % self.user_property_value_len, self.user_property_value]
-        self.authentication_method_len = 1#random.randint(1, 20)
+        self.authentication_method_len = random.randint(1, 20)
         self.authentication_method = ["%.2x" % 0x15, "%.2x" % self.authentication_method_len, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.authentication_method_len)]]
-        self.authentication_data_len = 1#random.randint(1, 100)
+        self.authentication_data_len = random.randint(1, 100)
         self.authentication_data = ["%.2x" % 0x16, "%.2x" % self.authentication_data_len, "%.2x" % random.getrandbits(8 * self.authentication_data_len)]
 
         self.payload = [self.property_length]
-        properties_bitmap = 0#random.getrandbits(9)
+        properties_bitmap = random.getrandbits(9)
 
         if properties_bitmap & 1 == 0:
             self.payload.append(self.session_expiry_interval)
