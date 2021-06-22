@@ -1,3 +1,5 @@
+import socket
+
 class Packet:
     def __init__(self):
         self.payload = []
@@ -19,3 +21,14 @@ class Packet:
 
     def getByteLength(self):
         return len(self.toString()) / 2
+
+    def sendToBroker(self, host, port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, port))
+        try:
+            s.send(bytearray.fromhex(self.toString()))
+        except ValueError:
+            print("Error caused by following payload:")
+            print(self.toString())
+            exit(0)
+        s.close()
