@@ -4,7 +4,9 @@ import string
 import time
 import socket
 
-class ConnectProperties:
+from packet import Packet
+
+class ConnectProperties(Packet):
     def __init__(self):
 
         self.property_length = 0
@@ -65,19 +67,7 @@ class ConnectProperties:
         
         self.payload[0] = ["%.4x" % self.property_length]
         
-
-    def toList(self):
-        l = []
-        for p in self.payload:
-            for n in p:
-                if type(n) == list:
-                    for x in n:
-                        l.append(x)
-                else:
-                    l.append(n)
-        return l
-
-class ConnectFlags:
+class ConnectFlags(Packet):
     def __init__(self):
         self.username_flag = random.getrandbits(1)
         self.password_flag = random.getrandbits(1)
@@ -96,10 +86,7 @@ class ConnectFlags:
         self.payload = ["%.2x" % self.username_flag, "%.2x" % self.password_flag, "%.2x" % self.will_retain, "%.2x" % self.will_qos, "%.2x" % self.will_flag, "%.2x" % self.clean_start]
         self.payload_length = 1
 
-    def toList(self):
-        return self.payload
-
-class ConnectVariableHeader:
+class ConnectVariableHeader(Packet):
     def __init__(self):
         self.name = ["%.2x" % 0b0, "%.2x" % 0b100, "%.2x" % 0b1001101, "%.2x" % 0b1010001, "%.2x" % 0b1010100, "%.2x" % 0b1010100]
         self.protocol_version = ["%.2x" % random.choice([0b11, 0b100, 0b101])]
@@ -109,15 +96,8 @@ class ConnectVariableHeader:
 
         self.payload = [self.name, self.protocol_version, self.flags.toList(), self.keepalive, self.properties.toList()]
         self.payload_length = 11 + self.flags.payload_length + self.properties.property_length
-    
-    def toList(self):
-        l = []
-        for p in self.payload:
-            for n in p:
-                l.append(n)
-        return l
 
-class WillProperties:
+class WillProperties(Packet):
     def __init__(self, header):
         self.property_length = 0
         self.will_delay_interval = ["%.2x" % 0x18, "%.8x" % random.getrandbits(32)]
@@ -168,19 +148,7 @@ class WillProperties:
 
         self.payload[0] = ["%.4x" % self.property_length]
 
-    def toList(self):
-        l = []
-        for p in self.payload:
-            for n in p:
-                if type(n) == list:
-                    for x in n:
-                        l.append(x)
-                else:
-                    l.append(n)
-        return l
-
-
-class ConnectPayload:
+class ConnectPayload(Packet):
     def __init__(self, header):
         
         self.clientid_len = random.randint(1, 30)
@@ -212,51 +180,45 @@ class ConnectPayload:
             self.payload.append(self.password)
             self.payload_length += 2 + self.password_length
 
-    def toList(self):
-        l = []
-        for p in self.payload:
-            for n in p:
-                if type(n) == list:
-                    for x in n:
-                        l.append(x)
-                else:
-                    l.append(n)
-        return l
-
-
-class Connect:
+class Connect(Packet):
     def __init__(self):
         self.fixed_header = ["%.2x" % 0b10000]
         self.variable_header = ConnectVariableHeader()
         self.connect_payload = ConnectPayload(self.variable_header)
-
         
         self.payload_length = 4 + self.variable_header.payload_length + self.connect_payload.payload_length
 
         self.payload = [self.fixed_header, "%.2x" % self.payload_length, self.variable_header.toList(), self.connect_payload.toList()]
-    
-    def toList(self):
-        l = []
-        for p in self.payload:
-            for n in p:
-                if type(n) == list:
-                    for x in n:
-                        l.append(x)
-                else:
-                    l.append(n)
-        return l
 
-    def toString(self):
-        return "".join(self.toList())
+    def printComponentsAsList(self):
+        print("Fixed header: ", self.fixed_header)
+        print("Connect flags: ", self.variable_header.flags.toList())
+        print("Connect properties: ", self.variable_header.properties.toList())
+        print("Variable header: ", self.variable_header.toList())
+        print("Will properties: ", self.connect_payload.will_properties.toList())
+        print("Payload: ", self.connect_payload.toList())
+        print("Final packet: ", self.toList())
+
+    def printComponentSizes(self):
+        print("Fixed header: 2 bytes")
+        print("Connect flags: %d bytes" % self.variable_header.flags.getByteLength())
+        print("Connect properties: %d bytes" % self.variable_header.properties.getByteLength())
+        print("Variable header: %d bytes" % self.variable_header.getByteLength())
+        print("Will properties: %d bytes" % self.connect_payload.will_properties.getByteLength())
+        print("Payload: %d bytes" % self.connect_payload.getByteLength())
+        print("Final packet: %d bytes" % self.getByteLength())
 
 def test():
     host = "127.0.0.1"
     port = 1883
 
-    while True:        
+    while True:
+        packet = Connect()
+        packet.printComponentsAsList()
+        packet.printComponentSizes()     
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
-        s.send(bytearray.fromhex(Connect().toString()))
+        s.send(bytearray.fromhex(packet.toString()))
         s.close()
         time.sleep(1)
 
