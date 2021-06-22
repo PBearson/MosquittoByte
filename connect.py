@@ -68,12 +68,12 @@ class ConnectProperties(Packet):
         
 class ConnectFlags(Packet):
     def __init__(self):
-        self.username_flag = random.getrandbits(1)
-        self.password_flag = random.getrandbits(1)
-        self.will_retain = random.getrandbits(1)
+        self.username_flag = 0#random.getrandbits(1)
+        self.password_flag = 0#random.getrandbits(1)
+        self.will_retain = 0#random.getrandbits(1)
         self.will_qos = min(2, random.getrandbits(2))
-        self.will_flag = random.getrandbits(1)
-        self.clean_start = random.getrandbits(1)
+        self.will_flag = 0#random.getrandbits(1)
+        self.clean_start = 0#random.getrandbits(1)
         self.reserved = 0
 
         if self.will_flag == 0:
@@ -185,9 +185,9 @@ class Connect(Packet):
         self.variable_header = ConnectVariableHeader()
         self.connect_payload = ConnectPayload(self.variable_header)
         
-        self.payload_length = 4 + self.variable_header.payload_length + self.connect_payload.payload_length
+        self.payload_length = int(4 + self.variable_header.getByteLength() + self.connect_payload.getByteLength())
 
-        self.payload = [self.fixed_header, "%.4x" % self.payload_length, self.variable_header.toList(), self.connect_payload.toList()]
+        self.payload = [self.fixed_header, self.toVariableByte("%x" % (self.payload_length - 4)), self.variable_header.toList(), self.connect_payload.toList()]
 
     def printComponentsAsList(self):
         print("Fixed header: ", self.fixed_header)
@@ -211,10 +211,11 @@ def test():
     host = "127.0.0.1"
     port = 1883
 
-    for i in range(100):
+    for i in range(1):
         packet = Connect()
         packet.printComponentsAsList()
-        packet.printComponentSizes()     
+        packet.printComponentSizes()
+        print(packet.toString())    
         packet.sendToBroker(host, port)
         time.sleep(0.1)
 
