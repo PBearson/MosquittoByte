@@ -1,26 +1,28 @@
 import random
 import binascii
 import string
+import time
+import socket
 
 class ConnectProperties:
     def __init__(self):
 
         self.property_length = 0
-        self.session_expiry_interval = [0x11, random.getrandbits(32)]
-        self.receive_maximum = [0x21, max(1, random.getrandbits(16))]
-        self.maximum_packet_size = [0x27, max(1, random.getrandbits(32))]
-        self.topic_alias_maximum = [0x22, random.getrandbits(16)]
-        self.request_response_information = [0x19, random.getrandbits(1)]
-        self.request_problem_information = [0x17, random.getrandbits(1)]
+        self.session_expiry_interval = ["%.2x" % 0x11, "%.4x" % random.getrandbits(32)]
+        self.receive_maximum = ["%.2x" % 0x21, "%.2x" % max(1, random.getrandbits(16))]
+        self.maximum_packet_size = ["%.2x" % 0x27, "%.4x" % max(1, random.getrandbits(32))]
+        self.topic_alias_maximum = ["%.2x" % 0x22, "%.2x" % random.getrandbits(16)]
+        self.request_response_information = ["%.2x" % 0x19, "%.2x" % random.getrandbits(1)]
+        self.request_problem_information = ["%.2x" % 0x17, "%.2x" % random.getrandbits(1)]
         self.user_property_name_len = random.randint(1, 20)
-        self.user_property_name = [ord(random.choice(string.printable)) for i in range(self.user_property_name_len)]
+        self.user_property_name = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_name_len)]
         self.user_property_value_len = random.randint(1, 20)
-        self.user_property_value = [ord(random.choice(string.printable)) for i in range(self.user_property_value_len)]
-        self.user_property = [0x26, self.user_property_name_len, self.user_property_name, self.user_property_value_len, self.user_property_value]
+        self.user_property_value = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_value_len)]
+        self.user_property = ["%.2x" % 0x26, "%.2x" % self.user_property_name_len, self.user_property_name, "%.2x" % self.user_property_value_len, self.user_property_value]
         self.authentication_method_len = random.randint(1, 20)
-        self.authentication_method = [0x15, self.authentication_method_len, [ord(random.choice(string.printable)) for i in range(self.authentication_method_len)]]
+        self.authentication_method = ["%.2x" % 0x15, "%.2x" % self.authentication_method_len, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.authentication_method_len)]]
         self.authentication_data_len = random.randint(1, 100)
-        self.authentication_data = [0x16, self.authentication_data_len, random.getrandbits(8 * self.authentication_data_len)]
+        self.authentication_data = ["%.2x" % 0x16, "%.2x" % self.authentication_data_len, "%.2x" % random.getrandbits(8 * self.authentication_data_len)]
 
         self.payload = [self.property_length]
         properties_bitmap = random.getrandbits(9)
@@ -61,7 +63,7 @@ class ConnectProperties:
                 self.payload.append(self.authentication_data)
                 self.property_length += 3 + self.authentication_method_len
         
-        self.payload[0] = [self.property_length]
+        self.payload[0] = ["%.4x" % self.property_length]
         
 
     def toList(self):
@@ -91,20 +93,22 @@ class ConnectFlags:
         if self.will_flag == 0:
             self.will_retain = 0
 
-        self.payload = [self.username_flag, self.password_flag, self.will_retain, self.will_qos, self.will_flag, self.clean_start]
+        self.payload = ["%.2x" % self.username_flag, "%.2x" % self.password_flag, "%.2x" % self.will_retain, "%.2x" % self.will_qos, "%.2x" % self.will_flag, "%.2x" % self.clean_start]
+        self.payload_length = 1
 
     def toList(self):
         return self.payload
 
 class ConnectVariableHeader:
     def __init__(self):
-        self.name = [0b0, 0b100, 0b1001101, 0b1010001, 0b1010100, 0b1010100]
-        self.protocol_version = [random.choice([0b11, 0b100, 0b101])]
+        self.name = ["%.2x" % 0b0, "%.2x" % 0b100, "%.2x" % 0b1001101, "%.2x" % 0b1010001, "%.2x" % 0b1010100, "%.2x" % 0b1010100]
+        self.protocol_version = ["%.2x" % random.choice([0b11, 0b100, 0b101])]
         self.flags = ConnectFlags()
-        self.keepalive = [random.getrandbits(16)]
+        self.keepalive = ["%.2x" % random.getrandbits(16)]
         self.properties = ConnectProperties()
 
-        self.payload = (self.name, self.protocol_version, self.flags.toList(), self.keepalive, self.properties.toList())
+        self.payload = [self.name, self.protocol_version, self.flags.toList(), self.keepalive, self.properties.toList()]
+        self.payload_length = 11 + self.flags.payload_length + self.properties.property_length
     
     def toList(self):
         l = []
@@ -178,6 +182,7 @@ class WillProperties:
 
 class ConnectPayload:
     def __init__(self, header):
+        
         self.clientid_len = random.randint(1, 30)
         self.clientid = ["%.4x" % self.clientid_len, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.clientid_len)]]
         self.will_properties = WillProperties(header)
@@ -191,17 +196,21 @@ class ConnectPayload:
         self.password = ["%.4x" % self.password_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.password_length)]]
 
         self.payload = [self.clientid]
+        self.payload_length = self.clientid_len
 
         if header.flags.will_flag == 1:
             self.payload.append(self.will_properties.toList())
             self.payload.append(self.will_topic)
             self.payload.append(self.will_payload)
+            self.payload_length += 6 + self.will_properties.property_length + self.will_topic_length + self.will_payload_length
         
         if header.flags.username_flag == 1:
             self.payload.append(self.username)
+            self.payload_length += 2 + self.username_length
         
         if header.flags.password_flag == 1:
             self.payload.append(self.password)
+            self.payload_length += 2 + self.password_length
 
     def toList(self):
         l = []
@@ -221,7 +230,10 @@ class Connect:
         self.variable_header = ConnectVariableHeader()
         self.connect_payload = ConnectPayload(self.variable_header)
 
-        self.payload = [self.fixed_header, self.variable_header.toList(), self.connect_payload.toList()]
+        
+        self.payload_length = 4 + self.variable_header.payload_length + self.connect_payload.payload_length
+
+        self.payload = [self.fixed_header, "%.2x" % self.payload_length, self.variable_header.toList(), self.connect_payload.toList()]
     
     def toList(self):
         l = []
@@ -234,8 +246,19 @@ class Connect:
                     l.append(n)
         return l
 
+    def toString(self):
+        return "".join(self.toList())
 
-conn = Connect()
-print(conn.toList())
-# print(conn)
-# print([chr(s) for s in conn])
+def test():
+    host = "127.0.0.1"
+    port = 1883
+
+    while True:        
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, port))
+        s.send(bytearray.fromhex(Connect().toString()))
+        s.close()
+        time.sleep(1)
+
+if __name__ == "__main__":
+    test()
