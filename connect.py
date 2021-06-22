@@ -124,7 +124,7 @@ class WillProperties:
         self.response_topic_length = random.randint(1, 20)
         self.response_topic = ["%.2x" % 0x08, "%.4x" % self.response_topic_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.response_topic_length)]]
         self.correlation_data_length = random.randint(1, 30)
-        self.correlation_data = ["%.2x" % 0x09, "%.4x" % self.correlation_data_length, "%.2x" % random.getrandbits(8 * self.correlation_data_length)]
+        self.correlation_data = ["%.2x" % 0x09, "%.4x" % self.correlation_data_length, "%x" % random.getrandbits(8 * self.correlation_data_length)]
         self.user_property_name_len = random.randint(1, 20)
         self.user_property_name = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_name_len)]
         self.user_property_value_len = random.randint(1, 20)
@@ -132,7 +132,7 @@ class WillProperties:
         self.user_property = ["%.2x" % 0x26, "%.4x" % self.user_property_name_len, self.user_property_name, "%.4x" % self.user_property_value_len, self.user_property_value]
 
         self.payload = [self.property_length]
-        properties_bitmap = 0#random.getrandbits(7)
+        properties_bitmap = random.getrandbits(7)
 
         if properties_bitmap & 1 == 0:
             self.payload.append(self.will_delay_interval)
@@ -179,21 +179,63 @@ class WillProperties:
 class ConnectPayload:
     def __init__(self, header):
         self.clientid_len = random.randint(1, 30)
-        self.clientid = [self.clientid_len, [ord(random.choice(string.printable)) for i in range(self.clientid_len)]]
+        self.clientid = ["%.4x" % self.clientid_len, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.clientid_len)]]
         self.will_properties = WillProperties(header)
+        self.will_topic_length = random.randint(1, 30)
+        self.will_topic = ["%.4x" % self.will_topic_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.will_topic_length)]]
+        self.will_payload_length = random.randint(1, 100)
+        self.will_payload = ["%.4x" % self.will_payload_length, "%x" % random.getrandbits(8 * self.will_payload_length)]
+        self.username_length = random.randint(1, 20)
+        self.username = ["%.4x" % self.username_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.username_length)]]
+        self.password_length = random.randint(1, 20)
+        self.password = ["%.4x" % self.password_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.password_length)]]
+
+        self.payload = [self.clientid]
+
+        if header.flags.will_flag == 1:
+            self.payload.append(self.will_properties.toList())
+            self.payload.append(self.will_topic)
+            self.payload.append(self.will_payload)
+        
+        if header.flags.username_flag == 1:
+            self.payload.append(self.username)
+        
+        if header.flags.password_flag == 1:
+            self.payload.append(self.password)
+
+    def toList(self):
+        l = []
+        for p in self.payload:
+            for n in p:
+                if type(n) == list:
+                    for x in n:
+                        l.append(x)
+                else:
+                    l.append(n)
+        return l
 
 
 class Connect:
     def __init__(self):
-        self.fixed_header = [0b10000]
+        self.fixed_header = ["%.2x" % 0b10000]
         self.variable_header = ConnectVariableHeader()
-        self.payload = ConnectPayload(self.variable_header)
+        self.connect_payload = ConnectPayload(self.variable_header)
+
+        self.payload = [self.fixed_header, self.variable_header.toList(), self.connect_payload.toList()]
     
     def toList(self):
-        return self.variable_header.toList()
+        l = []
+        for p in self.payload:
+            for n in p:
+                if type(n) == list:
+                    for x in n:
+                        l.append(x)
+                else:
+                    l.append(n)
+        return l
 
 
 conn = Connect()
-print(conn.payload.will_properties.toList())
+print(conn.toList())
 # print(conn)
 # print([chr(s) for s in conn])
