@@ -61,18 +61,18 @@ class ConnectProperties(Packet):
 
             if (properties_bitmap >> 8) & 1 == 0:
                 self.payload.append(self.authentication_data)
-                self.payload_length += 3 + self.authentication_method_len
+                self.payload_length += 3 + self.authentication_data_len
         
         self.payload[0] = [self.toVariableByte("%x" % self.payload_length)]
         
 class ConnectFlags(Packet):
     def __init__(self):        
-        self.username_flag = random.getrandbits(1)
-        self.password_flag = random.getrandbits(1)
-        self.will_retain = random.getrandbits(1)
-        self.will_qos = min(2, random.getrandbits(2))
-        self.will_flag = random.getrandbits(1)
-        self.clean_start = random.getrandbits(1)
+        self.username_flag = 0#random.getrandbits(1)
+        self.password_flag = 0#random.getrandbits(1)
+        self.will_retain = 0#random.getrandbits(1)
+        self.will_qos = 0#min(2, random.getrandbits(2))
+        self.will_flag = 0#random.getrandbits(1)
+        self.clean_start = 0#random.getrandbits(1)
         self.reserved = 0
 
         if self.will_flag == 0:
@@ -207,6 +207,7 @@ class Connect(Packet):
         print("Will properties:", self.connect_payload.will_properties.toString())
         print("Will topic length:", self.connect_payload.will_topic_length)
         print("Will topic:", self.connect_payload.will_topic)
+        print("Total packet:", self.toString())
 
 def test():
     host = "127.0.0.1"
