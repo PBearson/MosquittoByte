@@ -71,7 +71,7 @@ class ConnectFlags(Packet):
         self.password_flag = random.getrandbits(1)
         self.will_retain = random.getrandbits(1)
         self.will_qos = min(2, random.getrandbits(2))
-        self.will_flag = 0#random.getrandbits(1)
+        self.will_flag = random.getrandbits(1)
         self.clean_start = random.getrandbits(1)
         self.reserved = 0
 
@@ -154,7 +154,6 @@ class WillProperties(Packet):
 
 class ConnectPayload(Packet):
     def __init__(self, header):
-        
         self.clientid_len = random.randint(1, 30)
         self.clientid = ["%.4x" % self.clientid_len, self.getAlphanumHexString(self.clientid_len)]
         self.will_properties = WillProperties(header)
@@ -170,26 +169,16 @@ class ConnectPayload(Packet):
         self.payload = [self.clientid]
         self.payload_length = self.clientid_len
 
-        print("Protocol:", header.protocol_version)
-        print("Will properties length:", self.will_properties.payload_length)
 
         if header.flags.will_flag == 1:
             if int(header.protocol_version[0]) == 5:
                 self.payload.append(self.will_properties.toList())
                 self.payload_length += 1 + self.will_properties.payload_length
-                print("Will properties:", self.will_properties.toString())
 
             self.payload.append(self.will_topic)
             self.payload.append(self.will_payload)
             self.payload_length += 2 + self.will_topic_length + self.will_payload_length
-                
-            print("Will topic:", self.will_topic)
-            print("Will payload:", self.will_payload)
-
-        print("Final payload:", self.toString())
-        print("Final payload length:", self.payload_length)
             
-        
         if header.flags.username_flag == 1:
             self.payload.append(self.username)
             self.payload_length += 2 + self.username_length
@@ -212,11 +201,10 @@ def test():
     host = "127.0.0.1"
     port = 1883
 
-    for i in range(1):
+    for i in range(10):
         packet = Connect()
-        print(packet.toString())
         packet.sendToBroker(host, port)
-        time.sleep(0.1)
+        time.sleep(0.01)
 
 if __name__ == "__main__":
     test()
