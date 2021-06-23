@@ -25,9 +25,23 @@ class Packet:
         return len(self.toString()) / 2
 
     def toVariableByte(self, byteString):
-        if len(byteString) % 2 == 1:
-            return "0" + byteString
-        return byteString
+        varByte = ""
+        byteInt = int(byteString, 16)
+        while True:
+            encoded = int(byteInt % 128)
+            byteInt = int(byteInt / 128)
+            if byteInt > 0:
+                encoded = encoded | 128
+
+            varByte += "%.2x" % encoded
+            if byteInt <= 0:
+                break
+
+        return varByte
+
+        # if len(byteString) % 2 == 1:
+        #     return "0" + byteString
+        # return byteString
 
     def getAlphanumHexString(self, stringLength):
         alphanum = string.ascii_letters + string.digits
