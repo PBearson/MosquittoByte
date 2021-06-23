@@ -1,4 +1,6 @@
 import socket
+import string
+import random
 
 class Packet:
     def __init__(self):
@@ -26,6 +28,10 @@ class Packet:
         if len(byteString) % 2 == 1:
             return "0" + byteString
         return byteString
+
+    def getAlphanumHexString(self, stringLength):
+        alphanum = string.ascii_letters + string.digits
+        return ["%.2x" % ord(random.choice(alphanum)) for i in range(stringLength)]
 
     def sendToBroker(self, host, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
