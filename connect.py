@@ -88,7 +88,6 @@ class ConnectFlags(Packet):
         payload_tmp = [self.username_flag, self.password_flag, self.will_retain, self.will_qos, self.will_flag, self.clean_start, self.reserved]
 
         self.payload = ["%.2x" % int("".join(bin(s)[2:] for s in payload_tmp), 2)]
-        print("Calculated payload", self.payload)
 
         self.payload_length = 1
 
