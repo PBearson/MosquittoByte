@@ -16,12 +16,12 @@ class ConnectProperties(Packet):
         self.request_response_information = ["%.2x" % 0x19, "%.2x" % random.getrandbits(1)]
         self.request_problem_information = ["%.2x" % 0x17, "%.2x" % random.getrandbits(1)]
         self.user_property_name_len = random.randint(1, 20)
-        self.user_property_name = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_name_len)]
+        self.user_property_name = self.getAlphanumHexString(self.user_property_name_len)
         self.user_property_value_len = random.randint(1, 20)
-        self.user_property_value = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_value_len)]
+        self.user_property_value = self.getAlphanumHexString(self.user_property_value_len)
         self.user_property = ["%.2x" % 0x26, "%.2x" % self.user_property_name_len, self.user_property_name, "%.2x" % self.user_property_value_len, self.user_property_value]
         self.authentication_method_len = random.randint(1, 20)
-        self.authentication_method = ["%.2x" % 0x15, "%.2x" % self.authentication_method_len, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.authentication_method_len)]]
+        self.authentication_method = ["%.2x" % 0x15, "%.2x" % self.authentication_method_len, self.getAlphanumHexString(self.authentication_method_len)]
         self.authentication_data_len = random.randint(1, 100)
         self.authentication_data = ["%.2x" % 0x16, "%.2x" % self.authentication_data_len, ["%.2x" % random.getrandbits(8) for i in range(self.authentication_data_len)]]
 
@@ -64,16 +64,19 @@ class ConnectProperties(Packet):
                 self.payload.append(self.authentication_data)
                 self.property_length += 3 + self.authentication_method_len
         
-        self.payload[0] = ["%.4x" % self.property_length]
+        self.payload[0] = [self.toVariableByte("%x" % self.property_length)]
         
 class ConnectFlags(Packet):
     def __init__(self):
-        self.username_flag = 0#random.getrandbits(1)
-        self.password_flag = 0#random.getrandbits(1)
-        self.will_retain = 0#random.getrandbits(1)
+        self.flags_bitmap = random.getrandbits(8)
+
+        
+        self.username_flag = random.getrandbits(1)
+        self.password_flag = random.getrandbits(1)
+        self.will_retain = random.getrandbits(1)
         self.will_qos = min(2, random.getrandbits(2))
-        self.will_flag = 0#random.getrandbits(1)
-        self.clean_start = 0#random.getrandbits(1)
+        self.will_flag = random.getrandbits(1)
+        self.clean_start = random.getrandbits(1)
         self.reserved = 0
 
         if self.will_flag == 0:
@@ -82,7 +85,11 @@ class ConnectFlags(Packet):
         if self.will_flag == 0:
             self.will_retain = 0
 
-        self.payload = ["%.2x" % self.username_flag, "%.2x" % self.password_flag, "%.2x" % self.will_retain, "%.2x" % self.will_qos, "%.2x" % self.will_flag, "%.2x" % self.clean_start]
+        payload_tmp = [self.username_flag, self.password_flag, self.will_retain, self.will_qos, self.will_flag, self.clean_start, self.reserved]
+
+        self.payload = ["%.2x" % int("".join(bin(s)[2:] for s in payload_tmp), 2)]
+        print("Calculated payload", self.payload)
+
         self.payload_length = 1
 
 class ConnectVariableHeader(Packet):
@@ -93,8 +100,11 @@ class ConnectVariableHeader(Packet):
         self.keepalive = ["%.4x" % random.getrandbits(16)]
         self.properties = ConnectProperties()
 
-        self.payload = [self.name, self.protocol_version, self.flags.toList(), self.keepalive, self.properties.toList()]
-        self.payload_length = 11 + self.flags.payload_length + self.properties.property_length
+        self.payload = [self.name, self.protocol_version, self.flags.toList(), self.keepalive]
+        self.payload_length = 11 + self.flags.payload_length
+        if int(self.protocol_version[0]) == 5:
+            self.payload.append(self.properties.toList())
+            self.payload_length += self.properties.property_length
 
 class WillProperties(Packet):
     def __init__(self, header):
@@ -103,15 +113,15 @@ class WillProperties(Packet):
         self.payload_format_indicator = ["%.2x" % 0x01, "%.2x" % random.getrandbits(1)]
         self.message_expiry_interval = ["%.2x" % 0x02, "%.8x" % random.getrandbits(32)]
         self.content_type_length = random.randint(1, 20)
-        self.content_type = ["%.2x" % 0x03, "%.4x" % self.content_type_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.content_type_length)]]
+        self.content_type = ["%.2x" % 0x03, "%.4x" % self.content_type_length, self.getAlphanumHexString(self.content_type_length)]
         self.response_topic_length = random.randint(1, 20)
-        self.response_topic = ["%.2x" % 0x08, "%.4x" % self.response_topic_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.response_topic_length)]]
+        self.response_topic = ["%.2x" % 0x08, "%.4x" % self.response_topic_length, self.getAlphanumHexString(self.response_topic_length)]
         self.correlation_data_length = random.randint(1, 30)
         self.correlation_data = ["%.2x" % 0x09, "%.4x" % self.correlation_data_length, ["%.2x" % random.getrandbits(8) for i in range(self.correlation_data_length)]]
         self.user_property_name_len = random.randint(1, 20)
-        self.user_property_name = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_name_len)]
+        self.user_property_name = self.getAlphanumHexString(self.user_property_name_len)
         self.user_property_value_len = random.randint(1, 20)
-        self.user_property_value = ["%.2x" % ord(random.choice(string.printable)) for i in range(self.user_property_value_len)]
+        self.user_property_value = self.getAlphanumHexString(self.user_property_value_len)
         self.user_property = ["%.2x" % 0x26, "%.4x" % self.user_property_name_len, self.user_property_name, "%.4x" % self.user_property_value_len, self.user_property_value]
 
         self.payload = [self.property_length]
@@ -151,16 +161,16 @@ class ConnectPayload(Packet):
     def __init__(self, header):
         
         self.clientid_len = random.randint(1, 30)
-        self.clientid = ["%.4x" % self.clientid_len, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.clientid_len)]]
+        self.clientid = ["%.4x" % self.clientid_len, self.getAlphanumHexString(self.clientid_len)]
         self.will_properties = WillProperties(header)
         self.will_topic_length = random.randint(1, 30)
-        self.will_topic = ["%.4x" % self.will_topic_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.will_topic_length)]]
+        self.will_topic = ["%.4x" % self.will_topic_length, self.getAlphanumHexString(self.will_topic_length)]
         self.will_payload_length = random.randint(1, 100)
         self.will_payload = ["%.4x" % self.will_payload_length, ["%.2x" % random.getrandbits(8) for i in range(self.will_payload_length)]]
         self.username_length = random.randint(1, 20)
-        self.username = ["%.4x" % self.username_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.username_length)]]
+        self.username = ["%.4x" % self.username_length, self.getAlphanumHexString(self.username_length)]
         self.password_length = random.randint(1, 20)
-        self.password = ["%.4x" % self.password_length, ["%.2x" % ord(random.choice(string.printable)) for i in range(self.password_length)]]
+        self.password = ["%.4x" % self.password_length, self.getAlphanumHexString(self.password_length)]
 
         self.payload = [self.clientid]
         self.payload_length = self.clientid_len
@@ -198,6 +208,15 @@ class Connect(Packet):
         print("Payload: ", self.connect_payload.toList())
         print("Final packet: ", self.toList())
 
+    def printComponentsAsString(self):
+        print("Fixed header: ", self.fixed_header[0])
+        print("Connect flags: ", self.variable_header.flags.toString())
+        print("Connect properties: ", self.variable_header.properties.toString())
+        print("Variable header: ", self.variable_header.toString())
+        print("Will properties: ", self.connect_payload.will_properties.toString())
+        print("Payload: ", self.connect_payload.toString())
+        print("Final packet: ", self.toString())
+
     def printComponentSizes(self):
         print("Fixed header: 2 bytes")
         print("Connect flags: %.1f bytes" % self.variable_header.flags.getByteLength())
@@ -213,9 +232,7 @@ def test():
 
     for i in range(1):
         packet = Connect()
-        packet.printComponentsAsList()
-        packet.printComponentSizes()
-        print(packet.toString())    
+        packet.printComponentsAsString()
         packet.sendToBroker(host, port)
         time.sleep(0.1)
 
