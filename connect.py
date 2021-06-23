@@ -7,8 +7,7 @@ from packet import Packet
 
 class ConnectProperties(Packet):
     def __init__(self):
-
-        self.property_length = 0
+        super().__init__()
         self.session_expiry_interval = ["%.2x" % 0x11, "%.8x" % random.getrandbits(32)]
         self.receive_maximum = ["%.2x" % 0x21, "%.4x" % max(1, random.getrandbits(16))]
         self.maximum_packet_size = ["%.2x" % 0x27, "%.8x" % max(1, random.getrandbits(32))]
@@ -19,58 +18,55 @@ class ConnectProperties(Packet):
         self.user_property_name = self.getAlphanumHexString(self.user_property_name_len)
         self.user_property_value_len = random.randint(1, 20)
         self.user_property_value = self.getAlphanumHexString(self.user_property_value_len)
-        self.user_property = ["%.2x" % 0x26, "%.2x" % self.user_property_name_len, self.user_property_name, "%.2x" % self.user_property_value_len, self.user_property_value]
+        self.user_property = ["%.2x" % 0x26, "%.4x" % self.user_property_name_len, self.user_property_name, "%.4x" % self.user_property_value_len, self.user_property_value]
         self.authentication_method_len = random.randint(1, 20)
-        self.authentication_method = ["%.2x" % 0x15, "%.2x" % self.authentication_method_len, self.getAlphanumHexString(self.authentication_method_len)]
+        self.authentication_method = ["%.2x" % 0x15, "%.4x" % self.authentication_method_len, self.getAlphanumHexString(self.authentication_method_len)]
         self.authentication_data_len = random.randint(1, 100)
-        self.authentication_data = ["%.2x" % 0x16, "%.2x" % self.authentication_data_len, ["%.2x" % random.getrandbits(8) for i in range(self.authentication_data_len)]]
+        self.authentication_data = ["%.2x" % 0x16, "%.4x" % self.authentication_data_len, ["%.2x" % random.getrandbits(8) for i in range(self.authentication_data_len)]]
 
-        self.payload = [self.property_length]
+        self.payload = [self.payload_length]
         properties_bitmap = random.getrandbits(9)
 
         if properties_bitmap & 1 == 0:
             self.payload.append(self.session_expiry_interval)
-            self.property_length += 5
+            self.payload_length += 5
 
         if (properties_bitmap >> 1) & 1 == 0:
             self.payload.append(self.receive_maximum)
-            self.property_length += 3
+            self.payload_length += 3
         
         if (properties_bitmap >> 2) & 1 == 0:
            self.payload.append(self.maximum_packet_size)
-           self.property_length += 5
+           self.payload_length += 5
 
         if (properties_bitmap >> 3) & 1 == 0:
             self.payload.append(self.topic_alias_maximum)
-            self.property_length += 3
+            self.payload_length += 3
         
         if (properties_bitmap >> 4) & 1 == 0:
             self.payload.append(self.request_response_information)
-            self.property_length += 2
+            self.payload_length += 2
 
         if (properties_bitmap >> 5) & 1 == 0:
             self.payload.append(self.request_problem_information)
-            self.property_length += 2
+            self.payload_length += 2
 
         if (properties_bitmap >> 6) & 1 == 0:
             self.payload.append(self.user_property)
-            self.property_length += 5 + self.user_property_name_len + self.user_property_value_len
+            self.payload_length += 5 + self.user_property_name_len + self.user_property_value_len
         
         if (properties_bitmap >> 7) & 1 == 0:
             self.payload.append(self.authentication_method)
-            self.property_length += 3 + self.authentication_method_len
+            self.payload_length += 3 + self.authentication_method_len
 
             if (properties_bitmap >> 8) & 1 == 0:
                 self.payload.append(self.authentication_data)
-                self.property_length += 3 + self.authentication_method_len
+                self.payload_length += 3 + self.authentication_method_len
         
-        self.payload[0] = [self.toVariableByte("%x" % self.property_length)]
+        self.payload[0] = [self.toVariableByte("%x" % self.payload_length)]
         
 class ConnectFlags(Packet):
-    def __init__(self):
-        self.flags_bitmap = random.getrandbits(8)
-
-        
+    def __init__(self):        
         self.username_flag = random.getrandbits(1)
         self.password_flag = random.getrandbits(1)
         self.will_retain = random.getrandbits(1)
@@ -94,7 +90,7 @@ class ConnectFlags(Packet):
 class ConnectVariableHeader(Packet):
     def __init__(self):
         self.name = ["%.2x" % 0b0, "%.2x" % 0b100, "%.2x" % 0b1001101, "%.2x" % 0b1010001, "%.2x" % 0b1010100, "%.2x" % 0b1010100]
-        self.protocol_version = ["%.2x" % random.choice([0b11, 0b100, 0b101])]
+        self.protocol_version = ["%.2x" % 0b101]#random.choice([0b11, 0b100, 0b101])]
         self.flags = ConnectFlags()
         self.keepalive = ["%.4x" % random.getrandbits(16)]
         self.properties = ConnectProperties()
@@ -103,11 +99,11 @@ class ConnectVariableHeader(Packet):
         self.payload_length = 11 + self.flags.payload_length
         if int(self.protocol_version[0]) == 5:
             self.payload.append(self.properties.toList())
-            self.payload_length += self.properties.property_length
+            self.payload_length += self.properties.payload_length
 
 class WillProperties(Packet):
     def __init__(self, header):
-        self.property_length = 0
+        super().__init__()
         self.will_delay_interval = ["%.2x" % 0x18, "%.8x" % random.getrandbits(32)]
         self.payload_format_indicator = ["%.2x" % 0x01, "%.2x" % random.getrandbits(1)]
         self.message_expiry_interval = ["%.2x" % 0x02, "%.8x" % random.getrandbits(32)]
@@ -123,38 +119,38 @@ class WillProperties(Packet):
         self.user_property_value = self.getAlphanumHexString(self.user_property_value_len)
         self.user_property = ["%.2x" % 0x26, "%.4x" % self.user_property_name_len, self.user_property_name, "%.4x" % self.user_property_value_len, self.user_property_value]
 
-        self.payload = [self.property_length]
+        self.payload = [self.payload_length]
         properties_bitmap = random.getrandbits(7)
 
         if properties_bitmap & 1 == 0:
             self.payload.append(self.will_delay_interval)
-            self.property_length += 5
+            self.payload_length += 5
 
         if (properties_bitmap >> 1) & 1 == 0:
             self.payload.append(self.payload_format_indicator)
-            self.property_length += 2
+            self.payload_length += 2
         
         if (properties_bitmap >> 2) & 1 == 0:
             self.payload.append(self.message_expiry_interval)
-            self.property_length += 5
+            self.payload_length += 5
 
         if (properties_bitmap >> 3) & 1 == 0:
             self.payload.append(self.content_type)
-            self.property_length += 3 + self.content_type_length
+            self.payload_length += 3 + self.content_type_length
 
         if (properties_bitmap >> 4) & 1 == 0:
             self.payload.append(self.response_topic)
-            self.property_length += 3 + self.response_topic_length
+            self.payload_length += 3 + self.response_topic_length
 
         if (properties_bitmap >> 5) & 1 == 0:
             self.payload.append(self.correlation_data)
-            self.property_length += 3 + self.correlation_data_length
+            self.payload_length += 3 + self.correlation_data_length
 
         if (properties_bitmap >> 6) & 1 == 0:
             self.payload.append(self.user_property)
-            self.property_length += 5 + self.user_property_name_len + self.user_property_value_len
+            self.payload_length += 5 + self.user_property_name_len + self.user_property_value_len
 
-        self.payload[0] = ["%.4x" % self.property_length]
+        self.payload[0] = [self.toVariableByte("%x" % self.payload_length)]
 
 class ConnectPayload(Packet):
     def __init__(self, header):
@@ -178,7 +174,7 @@ class ConnectPayload(Packet):
             self.payload.append(self.will_properties.toList())
             self.payload.append(self.will_topic)
             self.payload.append(self.will_payload)
-            self.payload_length += 6 + self.will_properties.property_length + self.will_topic_length + self.will_payload_length
+            self.payload_length += 6 + self.will_properties.payload_length + self.will_topic_length + self.will_payload_length
         
         if header.flags.username_flag == 1:
             self.payload.append(self.username)
@@ -198,32 +194,19 @@ class Connect(Packet):
 
         self.payload = [self.fixed_header, self.toVariableByte("%x" % (self.payload_length - 4)), self.variable_header.toList(), self.connect_payload.toList()]
 
-    def printComponentsAsList(self):
-        print("Fixed header: ", self.fixed_header)
-        print("Connect flags: ", self.variable_header.flags.toList())
-        print("Connect properties: ", self.variable_header.properties.toList())
-        print("Variable header: ", self.variable_header.toList())
-        print("Will properties: ", self.connect_payload.will_properties.toList())
-        print("Payload: ", self.connect_payload.toList())
-        print("Final packet: ", self.toList())
-
-    def printComponentsAsString(self):
-        print("Fixed header: ", self.fixed_header[0])
-        print("Connect flags: ", self.variable_header.flags.toString())
-        print("Connect properties: ", self.variable_header.properties.toString())
-        print("Variable header: ", self.variable_header.toString())
-        print("Will properties: ", self.connect_payload.will_properties.toString())
-        print("Payload: ", self.connect_payload.toString())
-        print("Final packet: ", self.toString())
-
-    def printComponentSizes(self):
-        print("Fixed header: 2 bytes")
-        print("Connect flags: %.1f bytes" % self.variable_header.flags.getByteLength())
-        print("Connect properties: %.1f bytes" % self.variable_header.properties.getByteLength())
-        print("Variable header: %.1f bytes" % self.variable_header.getByteLength())
-        print("Will properties: %.1f bytes" % self.connect_payload.will_properties.getByteLength())
-        print("Payload: %.1f bytes" % self.connect_payload.getByteLength())
-        print("Final packet: %.1f bytes" % self.getByteLength())
+    def printComponents(self):
+        print("Fixed Header:", self.fixed_header)
+        print("Message length:", self.payload_length - 4)
+        print("Protocol name:", self.variable_header.name)
+        print("Protocol version:", self.variable_header.protocol_version)
+        print("Connect flags:", self.variable_header.flags.toString())
+        print("Keep alive:", self.variable_header.keepalive)
+        print("Property length:", self.variable_header.properties.payload_length)
+        print("Properties: ", self.variable_header.properties.toString())
+        print("Will length:", self.connect_payload.will_properties.payload_length)
+        print("Will properties:", self.connect_payload.will_properties.toString())
+        print("Will topic length:", self.connect_payload.will_topic_length)
+        print("Will topic:", self.connect_payload.will_topic)
 
 def test():
     host = "127.0.0.1"
@@ -231,7 +214,7 @@ def test():
 
     for i in range(1):
         packet = Connect()
-        packet.printComponentsAsString()
+        packet.printComponents()
         packet.sendToBroker(host, port)
         time.sleep(0.1)
 
