@@ -71,7 +71,7 @@ class ConnectFlags(Packet):
         self.password_flag = random.getrandbits(1)
         self.will_retain = random.getrandbits(1)
         self.will_qos = min(2, random.getrandbits(2))
-        self.will_flag = random.getrandbits(1)
+        self.will_flag = 0#random.getrandbits(1)
         self.clean_start = random.getrandbits(1)
         self.reserved = 0
 
@@ -84,7 +84,6 @@ class ConnectFlags(Packet):
         payload_tmp = [self.username_flag, self.password_flag, self.will_retain, self.will_qos & 1, (self.will_qos >> 1) & 1, self.will_flag, self.clean_start, self.reserved]
 
         self.payload = ["%.2x" % int("".join(bin(s)[2:] for s in payload_tmp), 2)]
-        print("Flags:", self.payload)
 
         self.payload_length = 1
 
@@ -161,8 +160,8 @@ class ConnectPayload(Packet):
         self.will_properties = WillProperties(header)
         self.will_topic_length = random.randint(1, 30)
         self.will_topic = ["%.4x" % self.will_topic_length, self.getAlphanumHexString(self.will_topic_length)]
-        self.will_payload_length = random.randint(1, 100)
-        self.will_payload = ["%.4x" % self.will_payload_length, ["%.2x" % random.getrandbits(8) for i in range(self.will_payload_length)]]
+        self.will_payload_length = random.randint(1, 30)
+        self.will_payload = ["%.4x" % self.will_payload_length, self.getAlphanumHexString(self.will_payload_length)]
         self.username_length = random.randint(1, 20)
         self.username = ["%.4x" % self.username_length, self.getAlphanumHexString(self.username_length)]
         self.password_length = random.randint(1, 20)
@@ -171,15 +170,27 @@ class ConnectPayload(Packet):
         self.payload = [self.clientid]
         self.payload_length = self.clientid_len
 
+        print("Protocol:", header.protocol_version)
+        print("Will properties length:", self.will_properties.payload_length)
+
         if header.flags.will_flag == 1:
-            self.payload.append(self.will_properties.toList())
+            if int(header.protocol_version[0]) == 5:
+                self.payload.append(self.will_properties.toList())
+                self.payload_length += 1 + self.will_properties.payload_length
+                print("Will properties:", self.will_properties.toString())
+
             self.payload.append(self.will_topic)
             self.payload.append(self.will_payload)
-            self.payload_length += 6 + self.will_properties.payload_length + self.will_topic_length + self.will_payload_length
+            self.payload_length += 2 + self.will_topic_length + self.will_payload_length
+                
+            print("Will topic:", self.will_topic)
+            print("Will payload:", self.will_payload)
+
+        print("Final payload:", self.toString())
+        print("Final payload length:", self.payload_length)
+            
         
         if header.flags.username_flag == 1:
-            print("Your username:", self.username)
-            print("Your password:", self.password)
             self.payload.append(self.username)
             self.payload_length += 2 + self.username_length
         
