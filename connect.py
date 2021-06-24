@@ -8,12 +8,12 @@ from packet import Packet
 class ConnectProperties(Packet):
     def __init__(self):
         super().__init__()
-        self.session_expiry_interval = ["%.2x" % 0x11, "%.8x" % random.getrandbits(32)]
-        self.receive_maximum = ["%.2x" % 0x21, "%.4x" % max(1, random.getrandbits(16))]
-        self.maximum_packet_size = ["%.2x" % 0x27, "%.8x" % max(1, random.getrandbits(32))]
-        self.topic_alias_maximum = ["%.2x" % 0x22, "%.4x" % random.getrandbits(16)]
-        self.request_response_information = ["%.2x" % 0x19, "%.2x" % random.getrandbits(1)]
-        self.request_problem_information = ["%.2x" % 0x17, "%.2x" % random.getrandbits(1)]
+        self.session_expiry_interval = self.toBinaryData(0x11, 4, True)
+        self.receive_maximum = self.toBinaryData(0x21, 2, True)
+        self.maximum_packet_size = self.toBinaryData(0x27, 4, True, 8, 1)
+        self.topic_alias_maximum = self.toBinaryData(0x22, 2, True)
+        self.request_response_information = self.toBinaryData(0x19, 1, True, 1)
+        self.request_problem_information = self.toBinaryData(0x17, 1, True, 1)
         self.user_property_name_len = random.randint(1, 20)
         self.user_property_value_len = random.randint(1, 20)
         self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
@@ -90,7 +90,7 @@ class ConnectVariableHeader(Packet):
         self.name = ["%.2x" % 0b0, "%.2x" % 0b100, "%.2x" % 0b1001101, "%.2x" % 0b1010001, "%.2x" % 0b1010100, "%.2x" % 0b1010100]
         self.protocol_version = ["%.2x" % random.choice([0b11, 0b100, 0b101])]
         self.flags = ConnectFlags()
-        self.keepalive = ["%.4x" % random.getrandbits(16)]
+        self.keepalive = self.toBinaryData(None, 2, True)
         self.properties = ConnectProperties()
 
         self.payload = [self.name, self.protocol_version, self.flags.toList(), self.keepalive]
@@ -102,15 +102,15 @@ class ConnectVariableHeader(Packet):
 class WillProperties(Packet):
     def __init__(self, header):
         super().__init__()
-        self.will_delay_interval = ["%.2x" % 0x18, "%.8x" % random.getrandbits(32)]
-        self.payload_format_indicator = ["%.2x" % 0x01, "%.2x" % random.getrandbits(1)]
-        self.message_expiry_interval = ["%.2x" % 0x02, "%.8x" % random.getrandbits(32)]
+        self.will_delay_interval = self.toBinaryData(0x18, 4, True)
+        self.payload_format_indicator = self.toBinaryData(0x01, 1, True, 1) 
+        self.message_expiry_interval = self.toBinaryData(0x02, 4, True)       
         self.content_type_length = random.randint(1, 20)
         self.content_type = self.toEncodedString(0x03, self.content_type_length)
         self.response_topic_length = random.randint(1, 20)
         self.response_topic = self.toEncodedString(0x08, self.response_topic_length)
         self.correlation_data_length = random.randint(1, 30)
-        self.correlation_data = ["%.2x" % 0x09, "%.4x" % self.correlation_data_length, ["%.2x" % random.getrandbits(8) for i in range(self.correlation_data_length)]]
+        self.correlation_data = self.toBinaryData(0x09, self.correlation_data_length)
         self.user_property_name_len = random.randint(1, 20)
         self.user_property_value_len = random.randint(1, 20)
         self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
