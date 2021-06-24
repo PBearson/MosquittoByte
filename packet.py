@@ -57,6 +57,28 @@ class Packet:
     def toEncodedStringPair(self, identifier, string1Length, string2Length):
         return ["%.2x" % identifier, "%.4x" % string1Length, self.getAlphanumHexString(string1Length), "%.4x" % string2Length, self.getAlphanumHexString(string2Length)]
 
+    # identifier: a 1-byte integer (may be null)
+    # byteLength: a 2-byte integer
+    # omitLength: bool, means the byte length field is excluded
+    # maxBits: an integer in the range [0-8]. Dictates the max number of 1-bits per byte.
+    # Return: a binary encoding in one of the following formats:
+    #   - [ID, Len, Bytes]
+    #   - [ID, Bytes]
+    #   - [Len, Bytes]
+    #   - [Bytes]
+    def toBinaryData(self, identifier, byteLength, omitLength = False, maxBits = 8):
+        fullData = ["%.2x" % identifier, "%.4x" % byteLength, ["%.2x" % random.getrandbits(maxBits) for i in range(byteLength)]]
+        if identifier is None:
+            if omitLength:
+                return fullData[2]
+            else:
+                return fullData[1:]
+        else:
+            if omitLength:
+                return [fullData[0], fullData[2]]
+            else:
+                return fullData
+
     def sendToBroker(self, host, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
