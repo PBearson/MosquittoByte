@@ -1,6 +1,7 @@
 import socket
 import string
 import random
+import math
 
 class Packet:
     def __init__(self):
@@ -22,7 +23,9 @@ class Packet:
         return "".join(self.toList())
 
     def getByteLength(self):
-        return len(self.toString()) / 2
+        lenFloat = len(self.toString()) / 2
+        assert math.ceil(lenFloat) == math.floor(lenFloat)
+        return int(lenFloat)
 
     def toVariableByte(self, byteString):
         varByte = ""
@@ -83,8 +86,14 @@ class Packet:
                 return fullData
 
     # Get the kth bit in a bitmap, where k = 0 is the LSB
+    # TODO we may want to use appendPayloadRandomly() instead.
     def getKthBit(self, k, bitmap):
         return (bitmap >> k) & 1
+
+    # Append the payload with newPacket 50% of the time
+    def appendPayloadRandomly(self, newPacket):
+        if random.getrandbits(1) == 0 or 1 == 1:
+            self.payload.append(newPacket)
 
     def sendToBroker(self, host, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
