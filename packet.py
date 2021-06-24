@@ -92,7 +92,7 @@ class Packet:
 
     # Append the payload with newPacket 50% of the time
     def appendPayloadRandomly(self, newPacket):
-        if random.getrandbits(1) == 0 or 1 == 1:
+        if random.getrandbits(1) == 0:
             self.payload.append(newPacket)
 
     def sendToBroker(self, host, port):
