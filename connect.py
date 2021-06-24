@@ -15,14 +15,12 @@ class ConnectProperties(Packet):
         self.request_response_information = ["%.2x" % 0x19, "%.2x" % random.getrandbits(1)]
         self.request_problem_information = ["%.2x" % 0x17, "%.2x" % random.getrandbits(1)]
         self.user_property_name_len = random.randint(1, 20)
-        self.user_property_name = self.getAlphanumHexString(self.user_property_name_len)
         self.user_property_value_len = random.randint(1, 20)
-        self.user_property_value = self.getAlphanumHexString(self.user_property_value_len)
-        self.user_property = ["%.2x" % 0x26, "%.4x" % self.user_property_name_len, self.user_property_name, "%.4x" % self.user_property_value_len, self.user_property_value]
+        self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
         self.authentication_method_len = random.randint(1, 20)
-        self.authentication_method = ["%.2x" % 0x15, "%.4x" % self.authentication_method_len, self.getAlphanumHexString(self.authentication_method_len)]
+        self.authentication_method = self.toEncodedString(0x15, self.authentication_method_len)
         self.authentication_data_len = random.randint(1, 20)
-        self.authentication_data = ["%.2x" % 0x16, "%.4x" % self.authentication_data_len, self.getAlphanumHexString(self.authentication_data_len)]
+        self.authentication_data = self.toEncodedString(0x16, self.authentication_data_len)
 
         self.payload = [self.payload_length]
         properties_bitmap = random.getrandbits(9)
@@ -108,16 +106,14 @@ class WillProperties(Packet):
         self.payload_format_indicator = ["%.2x" % 0x01, "%.2x" % random.getrandbits(1)]
         self.message_expiry_interval = ["%.2x" % 0x02, "%.8x" % random.getrandbits(32)]
         self.content_type_length = random.randint(1, 20)
-        self.content_type = ["%.2x" % 0x03, "%.4x" % self.content_type_length, self.getAlphanumHexString(self.content_type_length)]
+        self.content_type = self.toEncodedString(0x03, self.content_type_length)
         self.response_topic_length = random.randint(1, 20)
-        self.response_topic = ["%.2x" % 0x08, "%.4x" % self.response_topic_length, self.getAlphanumHexString(self.response_topic_length)]
+        self.response_topic = self.toEncodedString(0x08, self.response_topic_length)
         self.correlation_data_length = random.randint(1, 30)
         self.correlation_data = ["%.2x" % 0x09, "%.4x" % self.correlation_data_length, ["%.2x" % random.getrandbits(8) for i in range(self.correlation_data_length)]]
         self.user_property_name_len = random.randint(1, 20)
-        self.user_property_name = self.getAlphanumHexString(self.user_property_name_len)
         self.user_property_value_len = random.randint(1, 20)
-        self.user_property_value = self.getAlphanumHexString(self.user_property_value_len)
-        self.user_property = ["%.2x" % 0x26, "%.4x" % self.user_property_name_len, self.user_property_name, "%.4x" % self.user_property_value_len, self.user_property_value]
+        self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
 
         self.payload = [self.payload_length]
         properties_bitmap = random.getrandbits(7)
@@ -155,20 +151,19 @@ class WillProperties(Packet):
 class ConnectPayload(Packet):
     def __init__(self, header):
         self.clientid_len = random.randint(1, 30)
-        self.clientid = ["%.4x" % self.clientid_len, self.getAlphanumHexString(self.clientid_len)]
+        self.clientid = self.toEncodedString(None, self.clientid_len)
         self.will_properties = WillProperties(header)
         self.will_topic_length = random.randint(1, 30)
-        self.will_topic = ["%.4x" % self.will_topic_length, self.getAlphanumHexString(self.will_topic_length)]
+        self.will_topic = self.toEncodedString(None, self.will_topic_length)
         self.will_payload_length = random.randint(1, 30)
-        self.will_payload = ["%.4x" % self.will_payload_length, self.getAlphanumHexString(self.will_payload_length)]
+        self.will_payload = self.toEncodedString(None, self.will_payload_length)
         self.username_length = random.randint(1, 20)
-        self.username = ["%.4x" % self.username_length, self.getAlphanumHexString(self.username_length)]
+        self.username = self.toEncodedString(None, self.username_length)
         self.password_length = random.randint(1, 20)
-        self.password = ["%.4x" % self.password_length, self.getAlphanumHexString(self.password_length)]
+        self.password = self.toEncodedString(None, self.password_length)
 
         self.payload = [self.clientid]
         self.payload_length = self.clientid_len
-
 
         if header.flags.will_flag == 1:
             if int(header.protocol_version[0]) == 5:
@@ -201,7 +196,7 @@ def test():
     host = "127.0.0.1"
     port = 1883
 
-    for i in range(10):
+    for i in range(250):
         packet = Connect()
         packet.sendToBroker(host, port)
         time.sleep(0.01)
