@@ -43,6 +43,20 @@ class Packet:
         alphanum = string.ascii_letters + string.digits
         return ["%.2x" % ord(random.choice(alphanum)) for i in range(stringLength)]
 
+    # identifier: a 1-byte integer (may be null)
+    # stringLength: a 2-byte integer
+    # Return: an encoding in the format [ID, Len, String] or [Len, String]
+    def toEncodedString(self, identifier, stringLength):
+        if identifier is None:
+            return ["%.4x" % stringLength, self.getAlphanumHexString(stringLength)]
+        return ["%.2x" % identifier, "%.4x" % stringLength, self.getAlphanumHexString(stringLength)]
+
+    # identifier: a 1-byte integer
+    # string1Length/string2Length: 2-byte integers
+    # Return: an encoding in the format [ID, Len1, String1, Len2, String2]
+    def toEncodedStringPair(self, identifier, string1Length, string2Length):
+        return ["%.2x" % identifier, "%.4x" % string1Length, self.getAlphanumHexString(string1Length), "%.4x" % string2Length, self.getAlphanumHexString(string2Length)]
+
     def sendToBroker(self, host, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
