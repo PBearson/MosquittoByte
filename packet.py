@@ -61,19 +61,22 @@ class Packet:
     # byteLength: a 2-byte integer
     # omitLength: bool, means the byte length field is excluded
     # maxBits: an integer in the range [0-8]. Dictates the max number of 1-bits per byte.
+    # minBits: an integer in the range [0-255]. Dictates the maximum possible size per byte.
     # Return: a binary encoding in one of the following formats:
     #   - [ID, Len, Bytes]
     #   - [ID, Bytes]
     #   - [Len, Bytes]
     #   - [Bytes]
-    def toBinaryData(self, identifier, byteLength, omitLength = False, maxBits = 8):
-        fullData = ["%.2x" % identifier, "%.4x" % byteLength, ["%.2x" % random.getrandbits(maxBits) for i in range(byteLength)]]
+    def toBinaryData(self, identifier, byteLength, omitLength = False, maxBits = 8, minValue = 0):
+        
         if identifier is None:
+            fullData = ["%.4x" % byteLength, ["%.2x" % max(minValue, random.getrandbits(maxBits)) for i in range(byteLength)]]
             if omitLength:
-                return fullData[2]
+                return fullData[1]
             else:
-                return fullData[1:]
+                return fullData
         else:
+            fullData = ["%.2x" % identifier, "%.4x" % byteLength, ["%.2x" % max(minValue, random.getrandbits(maxBits)) for i in range(byteLength)]]
             if omitLength:
                 return [fullData[0], fullData[2]]
             else:
