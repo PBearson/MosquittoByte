@@ -82,6 +82,10 @@ class Packet:
             else:
                 return fullData
 
+    # Get the kth bit in a bitmap, where k = 0 is the LSB
+    def getKthBit(self, k, bitmap):
+        return (bitmap >> k) & 1
+
     def sendToBroker(self, host, port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
