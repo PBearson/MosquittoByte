@@ -8,60 +8,42 @@ from packet import Packet
 class ConnectProperties(Packet):
     def __init__(self):
         super().__init__()
+
+        self.payload.append(["00"])
+
         self.session_expiry_interval = self.toBinaryData(0x11, 4, True)
+        self.appendPayloadRandomly(self.session_expiry_interval)
+
         self.receive_maximum = self.toBinaryData(0x21, 2, True)
+        self.appendPayloadRandomly(self.receive_maximum)
+
         self.maximum_packet_size = self.toBinaryData(0x27, 4, True, 8, 1)
+        self.appendPayloadRandomly(self.maximum_packet_size)
+
         self.topic_alias_maximum = self.toBinaryData(0x22, 2, True)
+        self.appendPayloadRandomly(self.topic_alias_maximum)
+
         self.request_response_information = self.toBinaryData(0x19, 1, True, 1)
+        self.appendPayloadRandomly(self.request_response_information)
+
         self.request_problem_information = self.toBinaryData(0x17, 1, True, 1)
+        self.appendPayloadRandomly(self.request_problem_information)
+
         self.user_property_name_len = random.randint(1, 20)
         self.user_property_value_len = random.randint(1, 20)
         self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
+        self.appendPayloadRandomly(self.user_property)
+
         self.authentication_method_len = random.randint(1, 20)
         self.authentication_method = self.toEncodedString(0x15, self.authentication_method_len)
+        self.appendPayloadRandomly(self.authentication_method)
+
         self.authentication_data_len = random.randint(1, 20)
         self.authentication_data = self.toEncodedString(0x16, self.authentication_data_len)
-
-        self.payload = [self.payload_length]
-        properties_bitmap = random.getrandbits(9)
-
-        if self.getKthBit(0, properties_bitmap):
-            self.payload.append(self.session_expiry_interval)
-            self.payload_length += 5
-
-        if self.getKthBit(1, properties_bitmap):
-            self.payload.append(self.receive_maximum)
-            self.payload_length += 3
+        self.appendPayloadRandomly(self.authentication_data)
         
-        if self.getKthBit(2, properties_bitmap):
-           self.payload.append(self.maximum_packet_size)
-           self.payload_length += 5
-
-        if self.getKthBit(3, properties_bitmap):
-            self.payload.append(self.topic_alias_maximum)
-            self.payload_length += 3
-        
-        if self.getKthBit(4, properties_bitmap):
-            self.payload.append(self.request_response_information)
-            self.payload_length += 2
-
-        if self.getKthBit(5, properties_bitmap):
-            self.payload.append(self.request_problem_information)
-            self.payload_length += 2
-
-        if self.getKthBit(6, properties_bitmap):
-            self.payload.append(self.user_property)
-            self.payload_length += 5 + self.user_property_name_len + self.user_property_value_len
-        
-        if self.getKthBit(7, properties_bitmap):
-            self.payload.append(self.authentication_method)
-            self.payload_length += 3 + self.authentication_method_len
-
-            if self.getKthBit(8, properties_bitmap):
-                self.payload.append(self.authentication_data)
-                self.payload_length += 3 + self.authentication_data_len
-        
-        self.payload[0] = [self.toVariableByte("%x" % self.payload_length)]
+        # Subtract 1 since the reported length includes the length field itself
+        self.payload[0] = [self.toVariableByte("%x" % (self.getByteLength() - 1))]
         
 class ConnectFlags(Packet):
     def __init__(self):        
