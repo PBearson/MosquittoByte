@@ -58,58 +58,6 @@ class ConnackProperties(Packet):
         self.server_reference = self.toEncodedString(0x1c, self.server_reference_length)
         self.appendPayloadRandomly(self.server_reference)
 
-        # self.authentication_method_length = random.randint(1, 30)
-        # self.authentication_method = self.toEncodedString(0x15, self.authentication_method_length)
-        # self.appendPayloadRandomly(self.authentication_method)
-
-        # self.authentication_data_length = random.randint(1, 30)
-        # self.authentication_data = self.toEncodedString(0x16, self.authentication_data_length)
-        # self.appendPayloadRandomly(self.authentication_data)
-
-        # properties_bitmap = random.getrandbits(60)
-
-        # if self.getKthBit(0, properties_bitmap):
-        #     self.payload.append(self.session_expiry_interval)
-
-        # if self.getKthBit(1, properties_bitmap):
-        #     self.payload.append(self.receive_maximum)
-
-        # if self.getKthBit(2, properties_bitmap):
-        #     self.payload.append(self.maximum_qos)
-
-        # if self.getKthBit(3, properties_bitmap):
-        #     self.payload.append(self.retain_available)
-
-        # if self.getKthBit(4, properties_bitmap):
-        #     self.payload.append(self.maximum_packet_size)
-
-        # if self.getKthBit(5, properties_bitmap):
-        #     self.payload.append(self.assigned_client_id)
-        
-        # if self.getKthBit(6, properties_bitmap):
-        #     self.payload.append(self.topic_alias_maximum)
-
-        # if self.getKthBit(7, properties_bitmap):
-        #     self.payload.append(self.reason_string)
-
-        # if self.getKthBit(8, properties_bitmap):
-        #     self.payload.append(self.user_property)
-
-        # if self.getKthBit(9, properties_bitmap):
-        #     self.payload.append(self.wildcard_subscripion_available)
-
-        # if self.getKthBit(10, properties_bitmap):
-        #     self.payload.append(self.subscription_identifiers_available)
-
-        # if self.getKthBit(11, properties_bitmap):
-        #     self.payload.append(self.shared_subscription_available)
-
-        # if self.getKthBit(12, properties_bitmap):
-        #     self.payload.append(self.server_keepalive)
-
-        # if self.getKthBit(13, properties_bitmap):
-        #     self.payload.append(self.response_information)
-
 class ConnackVariableHeader(Packet):
     def __init__(self, connect_packet):
         super().__init__()
@@ -120,7 +68,6 @@ class ConnackVariableHeader(Packet):
 
 
         self.payload = [self.acknowledgement_flags, self.return_code, self.connack_properties.toList()]
-        # self.payload_length = 2 + self.connack_properties.getByteLength()
 
 class Connack(Packet):
     def __init__(self, connect_packet = None):
@@ -131,12 +78,9 @@ class Connack(Packet):
         
         self.fixed_header = ['20']
         self.variable_header = ConnackVariableHeader(connect_packet)
-        # self.payload_length = 1 + self.variable_header.payload_length
         remaining_length = self.toVariableByte("%x" % self.variable_header.getByteLength())
 
         self.payload = [self.fixed_header, remaining_length, self.variable_header.toList()]
-        # self.payload = [self.fixed_header, "%.2x" % (self.payload_length - 1), self.variable_header.toList()]
-
 
 def test():
     host = "127.0.0.1"
