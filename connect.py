@@ -25,39 +25,39 @@ class ConnectProperties(Packet):
         self.payload = [self.payload_length]
         properties_bitmap = random.getrandbits(9)
 
-        if properties_bitmap & 1 == 0:
+        if self.getKthBit(0, properties_bitmap):
             self.payload.append(self.session_expiry_interval)
             self.payload_length += 5
 
-        if (properties_bitmap >> 1) & 1 == 0:
+        if self.getKthBit(1, properties_bitmap):
             self.payload.append(self.receive_maximum)
             self.payload_length += 3
         
-        if (properties_bitmap >> 2) & 1 == 0:
+        if self.getKthBit(2, properties_bitmap):
            self.payload.append(self.maximum_packet_size)
            self.payload_length += 5
 
-        if (properties_bitmap >> 3) & 1 == 0:
+        if self.getKthBit(3, properties_bitmap):
             self.payload.append(self.topic_alias_maximum)
             self.payload_length += 3
         
-        if (properties_bitmap >> 4) & 1 == 0:
+        if self.getKthBit(4, properties_bitmap):
             self.payload.append(self.request_response_information)
             self.payload_length += 2
 
-        if (properties_bitmap >> 5) & 1 == 0:
+        if self.getKthBit(5, properties_bitmap):
             self.payload.append(self.request_problem_information)
             self.payload_length += 2
 
-        if (properties_bitmap >> 6) & 1 == 0:
+        if self.getKthBit(6, properties_bitmap):
             self.payload.append(self.user_property)
             self.payload_length += 5 + self.user_property_name_len + self.user_property_value_len
         
-        if (properties_bitmap >> 7) & 1 == 0:
+        if self.getKthBit(7, properties_bitmap):
             self.payload.append(self.authentication_method)
             self.payload_length += 3 + self.authentication_method_len
 
-            if (properties_bitmap >> 8) & 1 == 0:
+            if self.getKthBit(8, properties_bitmap):
                 self.payload.append(self.authentication_data)
                 self.payload_length += 3 + self.authentication_data_len
         
@@ -118,31 +118,31 @@ class WillProperties(Packet):
         self.payload = [self.payload_length]
         properties_bitmap = random.getrandbits(7)
 
-        if properties_bitmap & 1 == 0:
+        if self.getKthBit(0, properties_bitmap):
             self.payload.append(self.will_delay_interval)
             self.payload_length += 5
 
-        if (properties_bitmap >> 1) & 1 == 0:
+        if self.getKthBit(1, properties_bitmap):
             self.payload.append(self.payload_format_indicator)
             self.payload_length += 2
         
-        if (properties_bitmap >> 2) & 1 == 0:
+        if self.getKthBit(2, properties_bitmap):
             self.payload.append(self.message_expiry_interval)
             self.payload_length += 5
 
-        if (properties_bitmap >> 3) & 1 == 0:
+        if self.getKthBit(3, properties_bitmap):
             self.payload.append(self.content_type)
             self.payload_length += 3 + self.content_type_length
 
-        if (properties_bitmap >> 4) & 1 == 0:
+        if self.getKthBit(4, properties_bitmap):
             self.payload.append(self.response_topic)
             self.payload_length += 3 + self.response_topic_length
 
-        if (properties_bitmap >> 5) & 1 == 0:
+        if self.getKthBit(5, properties_bitmap):
             self.payload.append(self.correlation_data)
             self.payload_length += 3 + self.correlation_data_length
 
-        if (properties_bitmap >> 6) & 1 == 0:
+        if self.getKthBit(6, properties_bitmap):
             self.payload.append(self.user_property)
             self.payload_length += 5 + self.user_property_name_len + self.user_property_value_len
 
