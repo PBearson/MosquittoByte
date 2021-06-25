@@ -84,18 +84,6 @@ class Packet:
             else:
                 return fullData
 
-    # Get the kth bit in a bitmap, where k = 0 is the LSB
-    # TODO we may want to use appendPayloadRandomly() instead.
-    def getKthBit(self, k, bitmap):
-        return (bitmap >> k) & 1
-
-    # Set the kth bitmap in a bitmap to value (0 or 1)
-    def setKthBit(self, k, value, bitmap):
-        assert value in [0, 1]
-        if value == 0:
-            return bitmap & ~(1 << k)
-        return bitmap | (1 << k)
-
     # Append the payload with newPacket 50% of the time
     def appendPayloadRandomly(self, newPacket):
         if random.getrandbits(1) == 0:
