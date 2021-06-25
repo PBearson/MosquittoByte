@@ -59,7 +59,7 @@ class ConnackProperties(Packet):
         self.appendPayloadRandomly(self.server_reference)
 
 class ConnackVariableHeader(Packet):
-    def __init__(self, connect_packet):
+    def __init__(self):
         super().__init__()
 
         self.acknowledgement_flags = self.toBinaryData(None, 1, True, 1)
@@ -70,14 +70,11 @@ class ConnackVariableHeader(Packet):
         self.payload = [self.acknowledgement_flags, self.return_code, self.connack_properties.toList()]
 
 class Connack(Packet):
-    def __init__(self, connect_packet = None):
+    def __init__(self):
         super().__init__()
 
-        if connect_packet is None:
-            connect_packet = Connect()
-        
         self.fixed_header = ['20']
-        self.variable_header = ConnackVariableHeader(connect_packet)
+        self.variable_header = ConnackVariableHeader()
         remaining_length = self.toVariableByte("%x" % self.variable_header.getByteLength())
 
         self.payload = [self.fixed_header, remaining_length, self.variable_header.toList()]
