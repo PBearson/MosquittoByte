@@ -6,7 +6,6 @@ import math
 class Packet:
     def __init__(self):
         self.payload = []
-        self.payload_length = 0
 
     def toList(self):
         l = []
