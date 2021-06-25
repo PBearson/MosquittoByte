@@ -89,11 +89,15 @@ class Packet:
         if random.getrandbits(1) == 0:
             self.payload.append(newPacket)
 
-    def sendToBroker(self, host, port):
+    # Send a payload to a broker. A payload can be specified or the 
+    # class-specific payload will be sent by default.
+    def sendToBroker(self, host, port, payload = None):
+        if payload is None:
+            payload = self.toString()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
         try:
-            s.send(bytearray.fromhex(self.toString()))
+            s.send(bytearray.fromhex(payload))
         except ValueError:
             print("Error caused by following payload:")
             print(self.toString())
