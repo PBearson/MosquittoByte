@@ -42,6 +42,12 @@ class Packet:
 
         return varByte
 
+    # Calculate the length of the payload and add it to the beginning 
+    # of the payload.
+    def prependPayloadLength(self):
+        payload_length = self.toVariableByte("%x" % (self.getByteLength()))
+        self.payload.insert(0, payload_length)
+
     def getAlphanumHexString(self, stringLength):
         alphanum = string.ascii_letters + string.digits
         return ["%.2x" % ord(random.choice(alphanum)) for i in range(stringLength)]
@@ -113,6 +119,7 @@ class Packet:
 
         for i in range(runs):
             packet = packetType()
-            print("Sending payload: ", packet.toString())
+            if verbose:
+                print("Sending payload: ", packet.toString())
             packet.sendToBroker(host, port)
             time.sleep(0.01)
