@@ -1,6 +1,5 @@
 from packet import Packet
 from connect import Connect 
-import time
 import random
 
 class ConnackProperties(Packet):
