@@ -1,15 +1,12 @@
 import random
 import binascii
 import string
-import time
 
 from packet import Packet
 
 class ConnectProperties(Packet):
     def __init__(self):
         super().__init__()
-
-        self.payload.append(["00"])
 
         self.session_expiry_interval = self.toBinaryData(0x11, 4, True)
         self.appendPayloadRandomly(self.session_expiry_interval)
@@ -42,8 +39,7 @@ class ConnectProperties(Packet):
         self.authentication_data = self.toEncodedString(0x16, self.authentication_data_len)
         self.appendPayloadRandomly(self.authentication_data)
         
-        # Subtract 1 since the reported length includes the length field itself
-        self.payload[0] = [self.toVariableByte("%x" % (self.getByteLength() - 1))]
+        self.prependPayloadLength()
         
 class ConnectFlags(Packet):
     def __init__(self):        
@@ -81,7 +77,6 @@ class ConnectVariableHeader(Packet):
 class WillProperties(Packet):
     def __init__(self, header):
         super().__init__()
-        self.payload.append(['00'])
 
         self.will_delay_interval = self.toBinaryData(0x18, 4, True)
         self.appendPayloadRandomly(self.will_delay_interval)
@@ -109,8 +104,7 @@ class WillProperties(Packet):
         self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
         self.appendPayloadRandomly(self.user_property)
 
-        # Subtract 1 since the reported length includes the length field itself
-        self.payload[0] = [self.toVariableByte("%x" % (self.getByteLength() - 1))]
+        self.prependPayloadLength()
 
 class ConnectPayload(Packet):
     def __init__(self, header):
