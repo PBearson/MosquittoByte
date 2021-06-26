@@ -79,14 +79,5 @@ class Connack(Packet):
 
         self.payload = [self.fixed_header, remaining_length, self.variable_header.toList()]
 
-def test():
-    host = "127.0.0.1"
-    port = 1883
-
-    for i in range(500):
-        packet = Connack()
-        packet.sendToBroker(host, port)
-        time.sleep(0.01)
-
 if __name__ == "__main__":
-    test()
+    Packet().test(Connack)

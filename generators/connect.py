@@ -151,14 +151,5 @@ class Connect(Packet):
         
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toList(), self.connect_payload.toList()]
 
-def test():
-    host = "127.0.0.1"
-    port = 1883
-
-    for i in range(500):
-        packet = Connect()
-        packet.sendToBroker(host, port)
-        time.sleep(0.01)
-
 if __name__ == "__main__":
-    test()
+    Packet().test(Connect)
