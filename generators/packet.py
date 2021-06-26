@@ -2,6 +2,7 @@ import socket
 import string
 import random
 import math
+import time
 
 class Packet:
     def __init__(self):
@@ -91,7 +92,7 @@ class Packet:
 
     # Send a payload to a broker. A payload can be specified or the 
     # class-specific payload will be sent by default.
-    def sendToBroker(self, host, port, payload = None):
+    def sendToBroker(self, host, port, payload = None, silenceError = False, killOnError = True):
         if payload is None:
             payload = self.toString()
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -99,7 +100,19 @@ class Packet:
         try:
             s.send(bytearray.fromhex(payload))
         except ValueError:
-            print("Error caused by following payload:")
-            print(self.toString())
-            exit(0)
+            if not silenceError:
+                print("ValueError caused by following payload:")
+                print(payload)
+            if killOnError:
+                exit(0)
         s.close()
+
+    def test(super, packetType, runs = 10, verbose = False):
+        host = "127.0.0.1"
+        port = 1883
+
+        for i in range(runs):
+            packet = packetType()
+            print("Sending payload: ", packet.toString())
+            packet.sendToBroker(host, port)
+            time.sleep(0.01)
