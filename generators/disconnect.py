@@ -14,7 +14,7 @@ class DisconnectProperties(Packet):
 
         self.user_property_name_length = random.randint(1, 30)
         self.user_property_value_length = random.randint(1, 30)
-        self.user_property = self.toEncodedStringPair(0x25, self.user_property_name_length, self.user_property_value_length)
+        self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_length, self.user_property_value_length)
         self.appendPayloadRandomly(self.user_property)
 
         self.server_reference_length = random.randint(1, 30)
@@ -46,4 +46,4 @@ class Disconnect(Packet):
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toString()]
 
 if __name__ == "__main__":
-    Packet().test(Disconnect)
+    Packet().test(Disconnect, 500)
