@@ -14,7 +14,7 @@ class ConnectProperties(Packet):
         self.receive_maximum = self.toBinaryData(0x21, 2, True)
         self.appendPayloadRandomly(self.receive_maximum)
 
-        self.maximum_packet_size = self.toBinaryData(0x27, 4, True, 8, 1)
+        self.maximum_packet_size = self.toBinaryData(0x27, 4, True, 8)
         self.appendPayloadRandomly(self.maximum_packet_size)
 
         self.topic_alias_maximum = self.toBinaryData(0x22, 2, True)
@@ -26,16 +26,16 @@ class ConnectProperties(Packet):
         self.request_problem_information = self.toBinaryData(0x17, 1, True, 1)
         self.appendPayloadRandomly(self.request_problem_information)
 
-        self.user_property_name_len = random.randint(1, 20)
-        self.user_property_value_len = random.randint(1, 20)
+        self.user_property_name_len = random.randint(0, 30)
+        self.user_property_value_len = random.randint(0, 30)
         self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
         self.appendPayloadRandomly(self.user_property)
 
-        self.authentication_method_len = random.randint(1, 20)
+        self.authentication_method_len = random.randint(0, 30)
         self.authentication_method = self.toEncodedString(0x15, self.authentication_method_len)
         self.appendPayloadRandomly(self.authentication_method)
 
-        self.authentication_data_len = random.randint(1, 20)
+        self.authentication_data_len = random.randint(0, 30)
         self.authentication_data = self.toEncodedString(0x16, self.authentication_data_len)
         self.appendPayloadRandomly(self.authentication_data)
         
@@ -87,20 +87,20 @@ class WillProperties(Packet):
         self.message_expiry_interval = self.toBinaryData(0x02, 4, True)
         self.appendPayloadRandomly(self.message_expiry_interval)
 
-        self.content_type_length = random.randint(1, 20)
+        self.content_type_length = random.randint(0, 30)
         self.content_type = self.toEncodedString(0x03, self.content_type_length)
         self.appendPayloadRandomly(self.content_type)
 
-        self.response_topic_length = random.randint(1, 20)
+        self.response_topic_length = random.randint(0, 30)
         self.response_topic = self.toEncodedString(0x08, self.response_topic_length)
         self.appendPayloadRandomly(self.response_topic)
 
-        self.correlation_data_length = random.randint(1, 30)
+        self.correlation_data_length = random.randint(0, 30)
         self.correlation_data = self.toBinaryData(0x09, self.correlation_data_length)
         self.appendPayloadRandomly(self.correlation_data)
 
-        self.user_property_name_len = random.randint(1, 20)
-        self.user_property_value_len = random.randint(1, 20)
+        self.user_property_name_len = random.randint(0, 30)
+        self.user_property_value_len = random.randint(0, 30)
         self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_len, self.user_property_value_len)
         self.appendPayloadRandomly(self.user_property)
 
@@ -108,16 +108,16 @@ class WillProperties(Packet):
 
 class ConnectPayload(Packet):
     def __init__(self, header):
-        self.clientid_len = random.randint(1, 30)
+        self.clientid_len = random.randint(0, 30)
         self.clientid = self.toEncodedString(None, self.clientid_len)
         self.will_properties = WillProperties(header)
-        self.will_topic_length = random.randint(1, 30)
+        self.will_topic_length = random.randint(0, 30)
         self.will_topic = self.toEncodedString(None, self.will_topic_length)
-        self.will_payload_length = random.randint(1, 30)
+        self.will_payload_length = random.randint(0, 30)
         self.will_payload = self.toEncodedString(None, self.will_payload_length)
-        self.username_length = random.randint(1, 20)
+        self.username_length = random.randint(0, 30)
         self.username = self.toEncodedString(None, self.username_length)
-        self.password_length = random.randint(1, 20)
+        self.password_length = random.randint(0, 30)
         self.password = self.toEncodedString(None, self.password_length)
 
         self.payload = [self.clientid]
@@ -146,4 +146,4 @@ class Connect(Packet):
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toList(), self.connect_payload.toList()]
 
 if __name__ == "__main__":
-    Packet().test(Connect)
+    Packet().test(Connect, 1)

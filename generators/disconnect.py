@@ -8,12 +8,12 @@ class DisconnectProperties(Packet):
         self.session_expiry_interval = self.toBinaryData(0x11, 4, True)
         self.appendPayloadRandomly(self.session_expiry_interval)
 
-        self.reason_string_length = random.randint(1, 30)
+        self.reason_string_length = random.randint(0, 30)
         self.reason_string = self.toEncodedString(0x1f, self.reason_string_length)
         self.appendPayloadRandomly(self.reason_string)
 
-        self.user_property_name_length = random.randint(1, 30)
-        self.user_property_value_length = random.randint(1, 30)
+        self.user_property_name_length = random.randint(0, 30)
+        self.user_property_value_length = random.randint(0, 30)
         self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_length, self.user_property_value_length)
         self.appendPayloadRandomly(self.user_property)
 
@@ -46,4 +46,4 @@ class Disconnect(Packet):
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toString()]
 
 if __name__ == "__main__":
-    Packet().test(Disconnect, 500)
+    Packet().test(Disconnect)
