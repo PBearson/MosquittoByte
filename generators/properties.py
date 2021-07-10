@@ -63,5 +63,44 @@ class Properties(Packet):
         self.response_information = self.toEncodedString(0x1a, self.response_information_length)
         self.conditionalAppend(whitelist, 0x1a, self.response_information)
 
+        self.server_reference_length = random.randint(1, 30)
+        self.server_reference = self.toEncodedString(0x1c, self.server_reference_length)
+        self.conditionalAppend(whitelist, 0x1c, self.server_reference)
+
+        self.reason_string_length = random.randint(1, 30)
+        self.reason_string = self.toEncodedString(0x1f, self.reason_string_length)
+        self.conditionalAppend(whitelist, 0x1f, self.reason_string)
+
+        self.receive_maximum = self.toBinaryData(0x21, 2, True, 8, 1)
+        self.conditionalAppend(whitelist, 0x21, self.receive_maximum)
+
+        self.topic_alias_maximum = self.toBinaryData(0x22, 2, True)
+        self.conditionalAppend(whitelist, 0x22, self.topic_alias_maximum)
+
+        self.topic_alias = self.toBinaryData(0x23, 2, True)
+        self.conditionalAppend(whitelist, 0x23, self.topic_alias)
+
+        self.maximum_qos = self.toBinaryData(0x24, 1, True, 1)
+        self.conditionalAppend(whitelist, 0x24, self.maximum_qos)
+
+        self.retain_available = self.toBinaryData(0x25, 1, True, 1)
+        self.conditionalAppend(whitelist, 0x25, self.retain_available)
+
+        self.user_property_name_length = random.randint(1, 30)
+        self.user_property_value_length = random.randint(1, 30)
+        self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_length, self.user_property_value_length)
+        self.conditionalAppend(whitelist, 0x26, self.user_property)
+
+        self.maximum_packet_size = self.toBinaryData(0x27, 4, True, 8, 1)
+        self.conditionalAppend(whitelist, 0x27, self.maximum_packet_size)
+
+        self.wildcard_subscription_available = self.toBinaryData(0x28, 1, True, 1)
+        self.conditionalAppend(whitelist, 0x28, self.wildcard_subscription_available)
+
+        self.subscription_identifiers_available = self.toBinaryData(0x29, 1, True, 1)
+        self.conditionalAppend(whitelist, 0x29, self.subscription_identifiers_available)
+
+        self.shared_subscription_available = self.toBinaryData(0x2a, 1, True, 1)
+        self.conditionalAppend(whitelist, 0x2a, self.shared_subscription_available)
 
         self.prependPayloadLength()
