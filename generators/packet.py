@@ -113,13 +113,13 @@ class Packet:
                 exit(0)
         s.close()
 
-    def test(super, packetType, runs = 10, verbose = False):
-        host = "127.0.0.1"
-        port = 1883
+def packetTest(packetType, runs = 10, verbose = False):
+    host = "127.0.0.1"
+    port = 1883
 
-        for i in range(runs):
-            packet = packetType()
-            if verbose:
-                print("Sending payload: ", packet.toString())
-            packet.sendToBroker(host, port)
-            time.sleep(0.01)
+    for i in range(runs):
+        packet = packetType()
+        if verbose:
+            print("Sending payload: ", packet.toString())
+        packet.sendToBroker(host, port)
+        time.sleep(0.01)
