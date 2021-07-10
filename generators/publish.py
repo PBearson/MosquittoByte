@@ -84,4 +84,4 @@ class Publish(Packet):
         self.payload = [self.fixed_header.toString(), self.toVariableByte("%x" % remaining_length), self.variable_header.toString(), self.publish_message]
 
 if __name__ == "__main__":
-    packetTest([Connect, Publish], 10)
+    packetTest([Connect, Publish])
