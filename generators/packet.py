@@ -96,30 +96,30 @@ class Packet:
         if random.getrandbits(1) == 0:
             self.payload.append(newPacket)
 
-    # Send a payload to a broker. A payload can be specified or the 
-    # class-specific payload will be sent by default.
-    def sendToBroker(self, host, port, payload = None, silenceError = False, killOnError = True):
-        if payload is None:
-            payload = self.toString()
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((host, port))
-        try:
-            s.send(bytearray.fromhex(payload))
-        except ValueError:
-            if not silenceError:
-                print("ValueError caused by following payload:")
-                print(payload)
-            if killOnError:
-                exit(0)
-        s.close()
+# Send a payload to a broker.
+def sendToBroker(host, port, payload, silenceError = False, killOnError = True):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((host, port))
+    try:
+        s.send(bytearray.fromhex(payload))
+    except ValueError:
+        if not silenceError:
+            print("ValueError caused by following payload:")
+            print(payload)
+        if killOnError:
+            exit(0)
+    s.close()
 
-def packetTest(packetType, runs = 10, verbose = False):
+def packetTest(packetTypes, runs = 10, verbose = False):
     host = "127.0.0.1"
     port = 1883
 
     for i in range(runs):
-        packet = packetType()
+        payload = ""
+        protocol_version = random.randint(3, 5)
+        for p in packetTypes:
+            payload += p(protocol_version).toString()
         if verbose:
-            print("Sending payload: ", packet.toString())
-        packet.sendToBroker(host, port)
+            print("Sending payload: ", payload)
+        sendToBroker(host, port, payload)
         time.sleep(0.01)

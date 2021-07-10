@@ -1,3 +1,4 @@
+from connect import Connect
 from packet import Packet
 from packet import packetTest
 import random
@@ -83,4 +84,4 @@ class Publish(Packet):
         self.payload = [self.fixed_header.toString(), self.toVariableByte("%x" % remaining_length), self.variable_header.toString(), self.publish_message]
 
 if __name__ == "__main__":
-    packetTest(Publish, 1000)
+    packetTest([Connect, Publish], 10)
