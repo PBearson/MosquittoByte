@@ -42,6 +42,26 @@ class Properties(Packet):
         self.server_keepalive = self.toBinaryData(0x13, 2, True)
         self.conditionalAppend(whitelist, 0x13, self.server_keepalive)
 
-        
+        self.authentication_method_len = random.randint(0, 30)
+        self.authentication_method = self.toEncodedString(0x15, self.authentication_method_len)
+        self.conditionalAppend(whitelist, 0x15, self.authentication_method)
+
+        self.authentication_data_len = random.randint(0, 30)
+        self.authentication_data = self.toEncodedString(0x16, self.authentication_data_len)
+        self.conditionalAppend(whitelist, 0x16, self.authentication_data)
+
+        self.request_problem_information = self.toBinaryData(0x17, 1, True, 1)
+        self.conditionalAppend(whitelist, 0x17, self.request_problem_information)
+
+        self.will_delay_interval = self.toBinaryData(0x18, 4, True)
+        self.conditionalAppend(whitelist, 0x18, self.will_delay_interval)
+
+        self.request_response_information = self.toBinaryData(0x19, 1, True, 1)
+        self.conditionalAppend(whitelist, 0x19, self.request_response_information)
+
+        self.response_information_length = random.randint(1, 30)
+        self.response_information = self.toEncodedString(0x1a, self.response_information_length)
+        self.conditionalAppend(whitelist, 0x1a, self.response_information)
+
 
         self.prependPayloadLength()
