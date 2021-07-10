@@ -1,4 +1,5 @@
 from packet import Packet
+from packet import packetTest
 import random
 
 class PublishFixedHeader(Packet):
@@ -50,7 +51,7 @@ class PublishProperties(Packet):
         self.prependPayloadLength()
 
 class PublishVariableHeader(Packet):
-    def __init__(self, qos):
+    def __init__(self, qos, protocol_version):
         super().__init__()
 
         self.topic_name_length = random.randint(0, 30)
@@ -62,15 +63,19 @@ class PublishVariableHeader(Packet):
             self.payload.append(self.packet_id)
 
         self.properties = PublishProperties()
-        self.payload.append(self.properties.toString())
+        if protocol_version == 5:
+            self.payload.append(self.properties.toString())
     
 
 class Publish(Packet):
-    def __init__(self):
+    def __init__(self, protocol_version = None):
         super().__init__()
 
+        if protocol_version is None:
+            protocol_version = random.randint(3, 5)
+
         self.fixed_header = PublishFixedHeader()
-        self.variable_header = PublishVariableHeader(self.fixed_header.qos)
+        self.variable_header = PublishVariableHeader(self.fixed_header.qos, protocol_version)
         self.publish_message_length = random.randint(0, 100)
         self.publish_message = self.getAlphanumHexString(self.publish_message_length)
 
@@ -78,4 +83,4 @@ class Publish(Packet):
         self.payload = [self.fixed_header.toString(), self.toVariableByte("%x" % remaining_length), self.variable_header.toString(), self.publish_message]
 
 if __name__ == "__main__":
-    Packet().test(Publish)
+    packetTest(Publish, 1000)
