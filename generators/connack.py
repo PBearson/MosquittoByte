@@ -58,6 +58,8 @@ class ConnackProperties(Packet):
         self.server_reference = self.toEncodedString(0x1c, self.server_reference_length)
         self.appendPayloadRandomly(self.server_reference)
 
+        self.prependPayloadLength()
+
 class ConnackVariableHeader(Packet):
     def __init__(self, protocol_version):
         super().__init__()
@@ -79,8 +81,6 @@ class Connack(Packet):
         if protocol_version is None:
             protocol_version = random.randint(3, 5)
 
-        # Connack and other packets need to know the protocol version 
-
         self.fixed_header = ['20']
         self.variable_header = ConnackVariableHeader(protocol_version)
         remaining_length = self.toVariableByte("%x" % self.variable_header.getByteLength())
@@ -88,4 +88,4 @@ class Connack(Packet):
         self.payload = [self.fixed_header, remaining_length, self.variable_header.toList()]
 
 if __name__ == "__main__":
-    packetTest(Connack)
+    packetTest([Connect, Connack])
