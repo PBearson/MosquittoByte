@@ -3,6 +3,7 @@ import binascii
 import string
 
 from packet import Packet
+from packet import packetTest
 
 class ConnectProperties(Packet):
     def __init__(self):
@@ -62,16 +63,16 @@ class ConnectFlags(Packet):
         self.payload = ["%.2x" % int("".join(bin(s)[2:] for s in payload_tmp), 2)]
 
 class ConnectVariableHeader(Packet):
-    def __init__(self):
+    def __init__(self, protocol_version):
         self.name = ["%.2x" % 0b0, "%.2x" % 0b100, "%.2x" % 0b1001101, "%.2x" % 0b1010001, "%.2x" % 0b1010100, "%.2x" % 0b1010100]
-        self.protocol_version = ["%.2x" % random.choice([0b11, 0b100, 0b101])]
+        self.protocol_version = ["%.2x" % protocol_version]
         self.flags = ConnectFlags()
         self.keepalive = self.toBinaryData(None, 2, True)
         self.properties = ConnectProperties()
 
         self.payload = [self.name, self.protocol_version, self.flags.toList(), self.keepalive]
 
-        if int(self.protocol_version[0]) == 5:
+        if protocol_version == 5:
             self.payload.append(self.properties.toList())
 
 class WillProperties(Packet):
@@ -136,9 +137,14 @@ class ConnectPayload(Packet):
             self.payload.append(self.password)
 
 class Connect(Packet):
-    def __init__(self):
+    def __init__(self, protocol_version = None):
+        super().__init__()
+
+        if protocol_version is None:
+            protocol_version = random.randint(3, 5)
+
         self.fixed_header = ["%.2x" % 0b10000]
-        self.variable_header = ConnectVariableHeader()
+        self.variable_header = ConnectVariableHeader(protocol_version)
         self.connect_payload = ConnectPayload(self.variable_header)
 
         remaining_length = self.variable_header.getByteLength() + self.connect_payload.getByteLength()
@@ -146,4 +152,4 @@ class Connect(Packet):
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toList(), self.connect_payload.toList()]
 
 if __name__ == "__main__":
-    Packet().test(Connect, 1)
+    packetTest(Connect, 10)
