@@ -1,49 +1,34 @@
 from packet import Packet
+from packet import packetTest
+from connect import Connect
+from properties import Properties
 import random
 
-class DisconnectProperties(Packet):
-    def __init__(self):
-        super().__init__()
-
-        self.session_expiry_interval = self.toBinaryData(0x11, 4, True)
-        self.appendPayloadRandomly(self.session_expiry_interval)
-
-        self.reason_string_length = random.randint(0, 30)
-        self.reason_string = self.toEncodedString(0x1f, self.reason_string_length)
-        self.appendPayloadRandomly(self.reason_string)
-
-        self.user_property_name_length = random.randint(0, 30)
-        self.user_property_value_length = random.randint(0, 30)
-        self.user_property = self.toEncodedStringPair(0x26, self.user_property_name_length, self.user_property_value_length)
-        self.appendPayloadRandomly(self.user_property)
-
-        self.server_reference_length = random.randint(1, 30)
-        self.server_reference = self.toEncodedString(0x1c, self.server_reference_length)
-        self.appendPayloadRandomly(self.server_reference)
-
-        self.prependPayloadLength()
-
 class DisconnectVariableHeader(Packet):
-    def __init__(self):
+    def __init__(self, protocol_version):
         super().__init__()
 
         self.reason_code = self.toBinaryData(None, 1, True)
         self.payload.append(self.reason_code)
 
-        self.properties = DisconnectProperties()
-        self.payload.append(self.properties.toString())
+        self.properties = Properties([0x11, 0x1f, 0x26, 0x1c])
+        if protocol_version == 5:
+            self.payload.append(self.properties.toString())
     
 
 class Disconnect(Packet):
-    def __init__(self):
+    def __init__(self, protocol_version = None):
         super().__init__()
 
+        if protocol_version is None:
+            protocol_version = random.randint(3, 5)
+
         self.fixed_header = ['e0']
-        self.variable_header = DisconnectVariableHeader()
+        self.variable_header = DisconnectVariableHeader(protocol_version)
 
         remaining_length = self.variable_header.getByteLength()
 
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toString()]
 
 if __name__ == "__main__":
-    Packet().test(Disconnect)
+    packetTest([Connect, Disconnect], 250)
