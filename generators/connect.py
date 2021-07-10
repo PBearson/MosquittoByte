@@ -152,4 +152,4 @@ class Connect(Packet):
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toList(), self.connect_payload.toList()]
 
 if __name__ == "__main__":
-    packetTest(Connect, 10)
+    packetTest([Connect])
