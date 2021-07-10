@@ -1,0 +1,1 @@
+# This file tracks the session states of all active clients in the server
