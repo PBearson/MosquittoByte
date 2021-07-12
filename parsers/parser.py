@@ -89,7 +89,29 @@ class Parser:
             if self.indexToByte(index, 1, properties) == '13':
                 index = self.insertTwoBytes("server keep alive", properties, index, False)
             
+            if self.indexToByte(index, 1, properties) == '15':
+                index = self.insertString("authentication method", properties, index, True)
 
+            if self.indexToByte(index, 1, properties) == '16':
+                index = self.insertBinaryData("authentication data", properties, index, False)
+
+            if self.indexToByte(index, 1, properties) == '17':
+                index = self.insertByte("request problem information", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '18':
+                index = self.insertFourBytes("will delay interval", properties, index, False)
+
+            if self.indexToByte(index, 1, properties) == '19':
+                index = self.insertByte("request response information", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '1a':
+                index = self.insertString("response information", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '1c':
+                index = self.insertString("server reference", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '1f':
+                index = self.insertString("reason string", properties, index, True)
             
             break
 
