@@ -136,8 +136,17 @@ class Parser:
             if self.indexToByte(index, 1, properties) == '26':
                 index = self.insertStringPair("user property", properties, index, True, False)
 
-            break
+            if self.indexToByte(index, 1, properties) == '27':
+                index = self.insertFourBytes("maximum packet size", properties, index, True)
 
+            if self.indexToByte(index, 1, properties) == '28':
+                index = self.insertByte("wildcard subscription available", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == "29":
+                index = self.insertByte("subscription identifier available", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == "2a":
+                index = self.insertByte("shared subscription available", properties, index, True)
         
 
     # Parse the Properties header in the payload.
