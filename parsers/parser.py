@@ -1,17 +1,29 @@
 class Parser:
 
-    def insertByte(self, fieldName, payload, index):
-        self.G_fields[fieldName] = self.indexToByte(index + 2, 1, payload)
+    def insertByte(self, fieldName, payload, index, use_G_field):
+        value = self.indexToByte(index + 2, 1, payload)
+        if use_G_field:
+            self.G_fields[fieldName] = value
+        else:
+            self.H_fields[fieldName] = value
         return index + 4
 
-    def insertFourBytes(self, fieldName, payload, index):
-        self.G_fields[fieldName] = self.indexToByte(index + 2, 4, payload)
+    def insertFourBytes(self, fieldName, payload, index, use_G_field):
+        value = self.indexToByte(index + 2, 4, payload)
+        if use_G_field:
+            self.G_fields[fieldName] = value
+        else:
+            self.H_fields[fieldName] = value
         return index + 10
 
-    def insertString(self, fieldName, payload, index):
+    def insertString(self, fieldName, payload, index, use_G_field):
         stringLength = int(self.indexToByte(index+2, 2, payload), 16)
-        self.H_fields[fieldName] = self.indexToByte(index + 6, stringLength, payload)
-        return index + 6 + stringLength
+        value = self.indexToByte(index + 6, stringLength, payload)
+        if use_G_field:
+            self.G_fields[fieldName] = value
+        else:
+            self.H_fields[fieldName] = value
+        return index + 6 + (stringLength * 2)
 
     # Called from parseProperties(). This function does the 
     # actual parsing.
@@ -19,13 +31,16 @@ class Parser:
         index = 0
         while index < len(properties):
             if self.indexToByte(index, 1, properties) == '01':
-                index = self.insertByte("payload format indicator", properties, index)
+                index = self.insertByte("payload format indicator", properties, index, True)
             
             if self.indexToByte(index, 1, properties) == '02':
-                index = self.insertFourBytes("message expiry interval", properties, index)
+                index = self.insertFourBytes("message expiry interval", properties, index, False)
 
             if self.indexToByte(index, 1, properties) == '03':
-                index = self.insertString("content type", properties, index)
+                index = self.insertString("content type", properties, index, False)
+
+            if self.indexToByte(index, 1, properties) == '08':
+                index = self.insertString("response topic", properties, index, False)
             
             break
 
