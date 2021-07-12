@@ -113,6 +113,21 @@ class Parser:
             if self.indexToByte(index, 1, properties) == '1f':
                 index = self.insertString("reason string", properties, index, True)
             
+            if self.indexToByte(index, 1, properties) == '21':
+                index = self.insertTwoBytes("receive maximum", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '22':
+                index = self.insertTwoBytes("topic alias maximum", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '23':
+                index = self.insertTwoBytes("topic alias", properties, index, False)
+
+            if self.indexToByte(index, 1, properties) == '24':
+                index = self.insertByte("maximum qos", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '25':
+                index = self.insertByte("retain available", properties, index, True)
+
             break
 
         
