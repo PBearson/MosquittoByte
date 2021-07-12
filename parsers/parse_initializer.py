@@ -22,9 +22,9 @@ class ParseInitializer:
 def test():
     protocol_version = random.randint(3, 5)
     connect = Connect(protocol_version)
-    connack = Connack(protocol_version)
-    sendToBroker("localhost", 1883, connect.toString() + connack.toString())
-    parser = ParseInitializer(connack.toString(), protocol_version).parser
+    publish = Publish(protocol_version)
+    sendToBroker("localhost", 1883, connect.toString() + publish.toString())
+    parser = ParseInitializer(publish.toString(), protocol_version).parser
     g_fields = parser.G_fields
     h_fields = parser.H_fields
     print(g_fields)
