@@ -33,6 +33,11 @@ class Parser:
             self.H_fields[fieldName] = value
         return index + 6 + (stringLength * 2)
 
+    def insertStringPair(self, fieldName, payload, index, key_Use_G_field, value_Use_G_field):
+        index = self.insertString(fieldName + " key", payload, index, key_Use_G_field)
+        index = self.insertString(fieldName + " value", payload, index - 2, value_Use_G_field)
+        return index
+
     def insertVariableByteInteger(self, fieldName, payload, index, use_G_field):
         index += 2
         startIndex = index
@@ -127,6 +132,9 @@ class Parser:
 
             if self.indexToByte(index, 1, properties) == '25':
                 index = self.insertByte("retain available", properties, index, True)
+
+            if self.indexToByte(index, 1, properties) == '26':
+                index = self.insertStringPair("user property", properties, index, True, False)
 
             break
 
