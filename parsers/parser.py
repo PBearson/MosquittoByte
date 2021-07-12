@@ -8,6 +8,14 @@ class Parser:
             self.H_fields[fieldName] = value
         return index + 4
 
+    def insertTwoBytes(self, fieldName, payload, index, use_G_field):
+        value = self.indexToByte(index + 2, 2, payload)
+        if use_G_field:
+            self.G_fields[fieldName] = value
+        else:
+            self.H_fields[fieldName] = value
+        return index + 6
+
     def insertFourBytes(self, fieldName, payload, index, use_G_field):
         value = self.indexToByte(index + 2, 4, payload)
         if use_G_field:
@@ -72,7 +80,16 @@ class Parser:
             if self.indexToByte(index, 1, properties) == '0b':
                 index = self.insertVariableByteInteger("subscription identifier", properties, index, False)
             
+            if self.indexToByte(index, 1, properties) == '11':
+                index = self.insertFourBytes("session expiry interval", properties, index, False)
+
+            if self.indexToByte(index, 1, properties) == '12':
+                index = self.insertString("assigned client identifier", properties, index, False)
             
+            if self.indexToByte(index, 1, properties) == '13':
+                index = self.insertTwoBytes("server keep alive", properties, index, False)
+            
+
             
             break
 
