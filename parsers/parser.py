@@ -25,6 +25,30 @@ class Parser:
             self.H_fields[fieldName] = value
         return index + 6 + (stringLength * 2)
 
+    def insertVariableByteInteger(self, fieldName, payload, index, use_G_field):
+        index += 2
+        startIndex = index
+        multiplier = 1
+        while True:
+            encodedByte = int(self.indexToByte(index, 1, payload), 16)
+            index += 2
+            multiplier *= 128
+            if encodedByte & 128 == 0:
+                break
+
+        value = payload[startIndex:index]
+        if use_G_field:
+            self.G_fields[fieldName] = value
+        else:
+            self.H_fields[fieldName] = value
+        
+        return index
+
+    # This is really just the same as insertString(), but the resulting
+    # data is not restricted to ASCII characters. Not relevant for parsing.
+    def insertBinaryData(self, fieldName, payload, index, use_G_field):
+        return self.insertString(fieldName, payload, index, use_G_field)
+
     # Called from parseProperties(). This function does the 
     # actual parsing.
     def parsePropertiesHelper(self, properties):
@@ -41,6 +65,14 @@ class Parser:
 
             if self.indexToByte(index, 1, properties) == '08':
                 index = self.insertString("response topic", properties, index, False)
+
+            if self.indexToByte(index, 1, properties) == '09':
+                index = self.insertBinaryData("correlation data", properties, index, False)
+
+            if self.indexToByte(index, 1, properties) == '0b':
+                index = self.insertVariableByteInteger("subscription identifier", properties, index, False)
+            
+            
             
             break
 
@@ -65,8 +97,6 @@ class Parser:
         self.parsePropertiesHelper(properties)
         self.index += propertyLength
         
-        
-
 
 
     # Given an index in the payload, return the corresponding
