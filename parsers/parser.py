@@ -1,5 +1,8 @@
 class Parser:
 
+    def insertByteNoIdentifier(self, fieldName, payload, index, use_G_field):
+        return self.insertByte(fieldName, payload, index - 2, use_G_field)
+
     def insertByte(self, fieldName, payload, index, use_G_field):
         value = self.indexToByte(index + 2, 1, payload)
         if use_G_field:
@@ -7,6 +10,9 @@ class Parser:
         else:
             self.H_fields[fieldName] = value
         return index + 4
+
+    def insertTwoBytesNoIdentifier(self, fieldName, payload, index, use_G_field):
+        return self.insertTwoBytes(fieldName, payload, index - 2, use_G_field)
 
     def insertTwoBytes(self, fieldName, payload, index, use_G_field):
         value = self.indexToByte(index + 2, 2, payload)
@@ -16,6 +22,9 @@ class Parser:
             self.H_fields[fieldName] = value
         return index + 6
 
+    def insertFourBytesNoIdentifier(self, fieldName, payload, index, use_G_field):
+        return self.insertFourBytes(fieldName, payload, index - 2, use_G_field)
+
     def insertFourBytes(self, fieldName, payload, index, use_G_field):
         value = self.indexToByte(index + 2, 4, payload)
         if use_G_field:
@@ -23,6 +32,9 @@ class Parser:
         else:
             self.H_fields[fieldName] = value
         return index + 10
+
+    def insertStringNoIdentifier(self, fieldName, payload, index, use_G_field):
+        return self.insertString(fieldName, payload, index - 2, use_G_field)
 
     def insertString(self, fieldName, payload, index, use_G_field):
         stringLength = int(self.indexToByte(index+2, 2, payload), 16)
@@ -37,6 +49,9 @@ class Parser:
         index = self.insertString(fieldName + " key", payload, index, key_Use_G_field)
         index = self.insertString(fieldName + " value", payload, index - 2, value_Use_G_field)
         return index
+
+    def insertVariableByteIntegerNoIdentifier(self, fieldName, payload, index, use_G_field):
+        return self.insertVariableByteInteger(fieldName, payload, index - 2, use_G_field)
 
     def insertVariableByteInteger(self, fieldName, payload, index, use_G_field):
         index += 2
@@ -166,8 +181,7 @@ class Parser:
 
         properties = self.indexToByte(self.index, propertyLength)
         self.parsePropertiesHelper(properties)
-        self.index += propertyLength
-        
+        self.index += propertyLength * 2
 
 
     # Given an index in the payload, return the corresponding
