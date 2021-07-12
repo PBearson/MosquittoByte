@@ -7,10 +7,12 @@ from connack_parser import ConnackParser
 from publish_parser import PublishParser
 from disconnect_parser import DisconnectParser
 from puback_parser import PubackParser
+from pubrec_parser import PubrecParser
 from connack import Connack
 from publish import Publish
 from connect import Connect
 from puback import Puback
+from pubrec import Pubrec
 from disconnect import Disconnect
 from packet import sendToBroker
 import random
@@ -24,13 +26,15 @@ class ParseInitializer:
             self.parser = PublishParser(payload, protocol_version)
         elif payload[0] == '4':
             self.parser = PubackParser(payload, protocol_version)
+        elif payload[0] == '5':
+            self.parser = PubrecParser(payload, protocol_version)
         elif payload[0] == 'e':
             self.parser = DisconnectParser(payload, protocol_version)
 
 def test():
     protocol_version = random.randint(3, 5)
     connect = Connect(protocol_version)
-    payload = Puback(protocol_version)
+    payload = Pubrec(protocol_version)
     sendToBroker("localhost", 1883, connect.toString() + payload.toString())
     parser = ParseInitializer(payload.toString(), protocol_version).parser
     g_fields = parser.G_fields
