@@ -9,7 +9,8 @@ class DisconnectVariableHeader(Packet):
         super().__init__()
 
         self.reason_code = self.toBinaryData(None, 1, True)
-        self.payload.append(self.reason_code)
+        if protocol_version == 5:
+            self.payload.append(self.reason_code)
 
         self.properties = Properties([0x11, 0x1f, 0x26, 0x1c])
         if protocol_version == 5:
