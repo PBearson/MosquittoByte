@@ -20,17 +20,15 @@ import random
 class ParseInitializer:
     def __init__(self, payload, protocol_version):
         assert type(payload) == str
-        if payload[0] == '2':
-            self.parser = ConnackParser(payload, protocol_version)
-        elif payload[0] == '3':
-            self.parser = PublishParser(payload, protocol_version)
-        elif payload[0] == '4':
-            self.parser = PubackParser(payload, protocol_version)
-        elif payload[0] == '5':
-            self.parser = PubrecParser(payload, protocol_version)
-        elif payload[0] == 'e':
-            self.parser = DisconnectParser(payload, protocol_version)
+        packetDict = {
+            '2': ConnackParser, 
+            '3': PublishParser,
+            '4': PubackParser,
+            '5': PubrecParser,
+            'e': DisconnectParser}
 
+        self.parser = packetDict[payload[0]](payload, protocol_version)
+        
 def test():
     protocol_version = random.randint(3, 5)
     connect = Connect(protocol_version)
