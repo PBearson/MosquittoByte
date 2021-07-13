@@ -9,8 +9,6 @@ class SubscribeParser(Parser):
         if protocol_version == 5:
             self.parseProperties()
 
-        # topic_num = 0
         while self.index < len(payload):
             self.index = self.insertStringListNoIdentifier("topic", payload, self.index, False)
             self.index = self.insertByteListNoIdentifier("subscription options", payload, self.index, True)
-            # topic_num += 1
