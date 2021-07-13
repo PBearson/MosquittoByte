@@ -34,11 +34,11 @@ class Suback(Packet):
 
         self.fixed_header = "90"
         self.variable_header = SubackVariableHeader(protocol_version)
-        self.subscribe_payload = SubackPayload(protocol_version)
+        self.suback_payload = SubackPayload(protocol_version)
 
-        remaining_length = self.variable_header.getByteLength() + self.subscribe_payload.getByteLength()
+        remaining_length = self.variable_header.getByteLength() + self.suback_payload.getByteLength()
 
-        self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toString(), self.subscribe_payload.toString()]
+        self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toString(), self.suback_payload.toString()]
         
 if __name__ == "__main__":
     packetTest([Connect, Suback], 300)
