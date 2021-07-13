@@ -11,6 +11,24 @@ class Parser:
             self.H_fields[fieldName] = value
         return index + 4
 
+    def insertByteListNoIdentifier(self, fieldName, payload, index, use_G_field):
+        return self.insertByteList(fieldName, payload, index - 2, use_G_field)
+
+    def insertByteList(self, fieldName, payload, index, use_G_field):
+        value = self.indexToByte(index + 2, 1, payload)
+        if use_G_field:
+            if fieldName not in self.G_fields.keys():
+                self.G_fields[fieldName] = [value]
+            elif value not in self.G_fields[fieldName]:
+                self.G_fields[fieldName].append(value)
+        else:
+            if fieldName not in self.H_fields.keys():
+                self.H_fields[fieldName] = [value]
+            elif value not in self.H_fields[fieldName]:
+                self.H_fields[fieldName].append(value)
+        return index + 4
+
+
     def insertTwoBytesNoIdentifier(self, fieldName, payload, index, use_G_field):
         return self.insertTwoBytes(fieldName, payload, index - 2, use_G_field)
 
@@ -43,6 +61,24 @@ class Parser:
             self.G_fields[fieldName] = value
         else:
             self.H_fields[fieldName] = value
+        return index + 6 + (stringLength * 2)
+
+    def insertStringListNoIdentifier(self, fieldName, payload, index, use_G_field):
+        return self.insertStringList(fieldName, payload, index - 2, use_G_field)
+
+    def insertStringList(self, fieldName, payload, index, use_G_field):
+        stringLength = int(self.indexToByte(index+2, 2, payload), 16)
+        value = self.indexToByte(index + 6, stringLength, payload)
+        if use_G_field:
+            if fieldName not in self.G_fields.keys():
+                self.G_fields[fieldName] = [value]
+            elif value not in self.G_fields[fieldName]:
+                self.G_fields[fieldName].append(value)
+        else:
+            if fieldName not in self.H_fields.keys():
+                self.H_fields[fieldName] = [value]
+            elif value not in self.H_fields[fieldName]:
+                self.H_fields[fieldName].append(value)
         return index + 6 + (stringLength * 2)
 
     def insertStringPair(self, fieldName, payload, index, key_Use_G_field, value_Use_G_field):
