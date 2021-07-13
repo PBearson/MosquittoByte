@@ -11,25 +11,25 @@ class SubscribePayload(Packet):
         self.numTopics = random.randint(0, 10)
 
         for i in range(self.numTopics):
-            self.topicLength = random.randint(0, 30)
-            self.topic = self.toEncodedString(None, self.topicLength)
-            self.payload.append(self.topic)
+            topicLength = random.randint(0, 30)
+            topic = self.toEncodedString(None, topicLength)
+            self.payload.append(topic)
 
-            self.topic_qos = random.randint(0, 2)
-            self.no_local = random.randint(0, 1)
-            self.retain_as_published = random.randint(0, 1)
-            self.retain_handling = random.randint(0, 2)
+            topic_qos = random.randint(0, 2)
+            no_local = random.randint(0, 1)
+            retain_as_published = random.randint(0, 1)
+            retain_handling = random.randint(0, 2)
 
             if protocol_version < 5:
-                self.no_local = 0
-                self.retain_as_published = 0
-                self.retain_handling = 0
+                no_local = 0
+                retain_as_published = 0
+                retain_handling = 0
             
-            subscription_options_tmp = [0b00, (self.retain_handling >> 1) & 1, self.retain_handling & 1, self.retain_as_published, self.no_local, (self.topic_qos >> 1) & 1, self.topic_qos & 1]
+            subscription_options_tmp = [0b00, (retain_handling >> 1) & 1, retain_handling & 1, retain_as_published, no_local, (topic_qos >> 1) & 1, topic_qos & 1]
 
-            self.subscription_options = ["%.2x" % int("".join(bin(s)[2:] for s in subscription_options_tmp), 2)]
+            subscription_options = ["%.2x" % int("".join(bin(s)[2:] for s in subscription_options_tmp), 2)]
             
-            self.payload.append(self.subscription_options)
+            self.payload.append(subscription_options)
 
 class SubscribeVariableHeader(Packet):
     def __init__(self, protocol_version):
