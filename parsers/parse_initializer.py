@@ -11,6 +11,7 @@ from puback_parser import PubackParser
 from pubrec_parser import PubrecParser
 from pubrel_parser import PubrelParser
 from pubcomp_parser import PubcompParser
+from subscribe_parser import SubscribeParser
 
 from connack import Connack
 from publish import Publish
@@ -19,6 +20,7 @@ from puback import Puback
 from pubrec import Pubrec
 from pubrel import Pubrel
 from pubcomp import Pubcomp
+from subscribe import Subscribe
 from disconnect import Disconnect
 
 from packet import sendToBroker
@@ -34,6 +36,7 @@ class ParseInitializer:
             '5': PubrecParser,
             '6': PubrelParser,
             '7': PubcompParser,
+            '8': SubscribeParser,
             'e': DisconnectParser}
 
         self.parser = packetDict[payload[0]](payload, protocol_version)
@@ -41,7 +44,7 @@ class ParseInitializer:
 def test():
     protocol_version = random.randint(3, 5)
     connect = Connect(protocol_version)
-    payload = Pubcomp(protocol_version)
+    payload = Subscribe(protocol_version)
     sendToBroker("localhost", 1883, connect.toString() + payload.toString())
     parser = ParseInitializer(payload.toString(), protocol_version).parser
     g_fields = parser.G_fields
