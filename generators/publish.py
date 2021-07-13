@@ -11,8 +11,8 @@ class PublishFixedHeader(Packet):
         self.dup = random.getrandbits(1)
         self.qos = min(2, random.getrandbits(2))
         self.retain = random.getrandbits(1)
-
-        payload_tmp = [0b11, self.dup, self.qos & 1, (self.qos >> 1) & 1, self.retain]
+        
+        payload_tmp = [0b11, self.dup, (self.qos >> 1) & 1, self.qos & 1, self.retain]
 
         self.payload = ["%.2x" % int("".join(bin(s)[2:] for s in payload_tmp), 2)]
 
