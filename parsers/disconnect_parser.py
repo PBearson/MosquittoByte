@@ -1,4 +1,13 @@
 from parser import Parser
+import sys
+sys.path.append("generators")
+
+from connect import Connect
+from disconnect import Disconnect
+
+from packet import sendToBroker
+
+import random
 
 class DisconnectParser(Parser):
 
@@ -10,3 +19,15 @@ class DisconnectParser(Parser):
 
         if protocol_version == 5:
             self.parseProperties()
+
+def test():
+    protocol_version = random.randint(3, 5)
+    connect = Connect(protocol_version)
+    payload = Disconnect(protocol_version)
+    sendToBroker("localhost", 1883, connect.toString() + payload.toString())
+    parser = DisconnectParser(payload.toString(), protocol_version)
+    print(parser.G_fields)
+    print(parser.H_fields)
+
+if __name__ == "__main__":
+    test()
