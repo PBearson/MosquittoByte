@@ -11,6 +11,7 @@ from pubcomp_parser import PubcompParser
 from subscribe_parser import SubscribeParser
 from suback_parser import SubackParser
 from unsubscribe_parser import UnsubscribeParser
+from unsuback_parser import UnsubackParser
 
 class ParseInitializer:
     def __init__(self, payload, protocol_version):
@@ -25,6 +26,7 @@ class ParseInitializer:
             '8': SubscribeParser,
             '9': SubackParser,
             'a': UnsubscribeParser,
+            'b', UnsubackParser,
             'e': DisconnectParser}
 
         self.parser = packetDict[payload[0]](payload, protocol_version)
