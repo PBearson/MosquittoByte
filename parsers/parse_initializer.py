@@ -3,17 +3,22 @@
 
 import sys
 sys.path.append("generators")
+
 from connack_parser import ConnackParser
 from publish_parser import PublishParser
 from disconnect_parser import DisconnectParser
 from puback_parser import PubackParser
 from pubrec_parser import PubrecParser
+from pubrel_parser import PubrelParser
+
 from connack import Connack
 from publish import Publish
 from connect import Connect
 from puback import Puback
 from pubrec import Pubrec
+from pubrel import Pubrel
 from disconnect import Disconnect
+
 from packet import sendToBroker
 import random
 
@@ -25,6 +30,7 @@ class ParseInitializer:
             '3': PublishParser,
             '4': PubackParser,
             '5': PubrecParser,
+            '6': PubrelParser,
             'e': DisconnectParser}
 
         self.parser = packetDict[payload[0]](payload, protocol_version)
@@ -32,7 +38,7 @@ class ParseInitializer:
 def test():
     protocol_version = random.randint(3, 5)
     connect = Connect(protocol_version)
-    payload = Pubrec(protocol_version)
+    payload = Pubrel(protocol_version)
     sendToBroker("localhost", 1883, connect.toString() + payload.toString())
     parser = ParseInitializer(payload.toString(), protocol_version).parser
     g_fields = parser.G_fields
