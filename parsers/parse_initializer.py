@@ -14,6 +14,7 @@ from unsubscribe_parser import UnsubscribeParser
 from unsuback_parser import UnsubackParser
 from pingreq_parser import PingreqParser
 from pingresp_parser import PingrespParser
+from auth_parser import AuthParser
 
 class ParseInitializer:
     def __init__(self, payload, protocol_version):
@@ -31,6 +32,7 @@ class ParseInitializer:
             'b', UnsubackParser,
             'c', PingreqParser,
             'd', PingrespParser,
-            'e': DisconnectParser}
+            'e': DisconnectParser,
+            'f': AuthParser}
 
         self.parser = packetDict[payload[0]](payload, protocol_version)
