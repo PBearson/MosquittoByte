@@ -99,12 +99,21 @@ class Packet:
 # Send a payload to a broker.
 def sendToBroker(host, port, payload, silenceError = False, killOnError = True):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
     try:
-        s.send(bytearray.fromhex(payload))
+        s.connect((host, port))
+        if type(payload) == str:
+            s.send(bytearray.fromhex(payload))
+        else:
+            s.send(payload)
     except ValueError:
         if not silenceError:
             print("ValueError caused by following payload:")
+            print(payload)
+        if killOnError:
+            exit(0)
+    except ConnectionRefusedError:
+        if not silenceError:
+            print("ConnectRefusedError caused by following payload:")
             print(payload)
         if killOnError:
             exit(0)
