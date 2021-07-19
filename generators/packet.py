@@ -117,6 +117,8 @@ def sendToBroker(host, port, payload, silenceError = False, killOnError = True):
             print(payload)
         if killOnError:
             exit(0)
+    except ConnectionResetError:
+        pass
     s.close()
 
 def packetTest(packetTypes, runs = 10, verbose = False):
