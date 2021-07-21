@@ -48,17 +48,25 @@ class Packet:
         payload_length = self.toVariableByte("%x" % (self.getByteLength()))
         self.payload.insert(0, payload_length)
 
-    def getAlphanumHexString(self, stringLength):
+    def getAlphanumHexString(self, stringLength, userstring = None):
+        if userstring is not None:
+            return ["%.2x" % ord(s) for s in userstring]
+
         alphanum = string.ascii_letters + string.digits
         return ["%.2x" % ord(random.choice(alphanum)) for i in range(stringLength)]
 
     # identifier: a 1-byte integer (may be null)
     # stringLength: a 2-byte integer
+    # userstring: an optional user-defined string. If not defined, the string is random.
     # Return: an encoding in the format [ID, Len, String] or [Len, String]
-    def toEncodedString(self, identifier, stringLength):
+    def toEncodedString(self, identifier, stringLength, userstring = None):
+        if userstring is None:
+            userstring = self.getAlphanumHexString(stringLength)
+        else:
+            userstring = self.getAlphanumHexString(stringLength, userstring)
         if identifier is None:
-            return ["%.4x" % stringLength, self.getAlphanumHexString(stringLength)]
-        return ["%.2x" % identifier, "%.4x" % stringLength, self.getAlphanumHexString(stringLength)]
+            return ["%.4x" % len(userstring), userstring]
+        return ["%.2x" % identifier, "%.4x" % len(userstring), userstring]
 
     # identifier: a 1-byte integer
     # string1Length/string2Length: 2-byte integers
