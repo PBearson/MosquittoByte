@@ -32,30 +32,60 @@ from unsuback import Unsuback
 from unsubscribe import Unsubscribe
 import pyradamsa
 import random
+import time
+import socket
 
 def sendShort(payload):
     sendToBroker("localhost", 1883, payload)
 
+def testSocket(socket):
+    try:
+        for i in range(3):
+            time.sleep(0.01)
+            socket.send(bytearray.fromhex('c000'))
+    except (ConnectionResetError, BrokenPipeError):
+        return False
+    return True
+        
+
+# def test
+
 def run():
     rad = pyradamsa.Radamsa()
-    packets = [Connect, Publish, Connack, Auth, Pingreq, Pingresp, Disconnect, Puback, Pubcomp, Pubrec, Pubrel, Suback, Subscribe, Unsuback, Unsubscribe]
-        
+    packets = [Connect, Disconnect, Publish, Connack, Auth, Pingreq, Pingresp, Puback, Pubcomp, Pubrec, Pubrel, Suback, Subscribe, Unsuback, Unsubscribe]
+
+    saved_payload = ""
+    saved_protocol = 0
+    attempts = 300
     while True:
-        numMiddle = random.randint(1, 10)
-        protocol = random.randint(3, 5)
-        connect = Connect(protocol).toString()
-        middle = ""
-        disconnect = Disconnect(protocol).toString()
-        for n in range(numMiddle):
-            middle += random.choice(packets)(protocol).toString()
+        if len(saved_payload) == 0:
+            protocol = random.randint(3, 5)
+            payload = Connect(protocol).toString()
+            saved_protocol = protocol
+        else:
+            payload = saved_payload
+            nextPayload = random.choice(packets)(saved_protocol).toString()
+            payload += nextPayload
 
-        payload = bytearray.fromhex(connect + middle + disconnect)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(("localhost", 1883))
+        s.send(bytearray.fromhex(payload))
+        if testSocket(s):
+            attempts = 300
+            saved_payload = payload
+            s.close()
+            print(len(saved_payload))
 
-        sendShort(payload)
+        else:
+            attempts -= 1
+            if attempts == 0:
+                print("Fuzzing now")
+                attempts = 300
+                for j in range(500):
+                    fuzzed = rad.fuzz(bytearray.fromhex(saved_payload))
+                    sendShort(fuzzed)
 
-        payload = rad.fuzz(payload)
-
-        sendShort(payload)
+                saved_payload = ""
 
 if __name__ == "__main__":
     run()
