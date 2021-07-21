@@ -28,7 +28,10 @@ class ConnectFlags(Packet):
 
 class ConnectVariableHeader(Packet):
     def __init__(self, protocol_version):
-        self.name = ["%.2x" % 0b0, "%.2x" % 0b100, "%.2x" % 0b1001101, "%.2x" % 0b1010001, "%.2x" % 0b1010100, "%.2x" % 0b1010100]
+        if protocol_version == 3:
+            self.name = self.toEncodedString(None, 6, "MQIsdp")
+        else:
+            self.name = self.toEncodedString(None, 4, "MQTT")
         self.protocol_version = ["%.2x" % protocol_version]
         self.flags = ConnectFlags()
         self.keepalive = self.toBinaryData(None, 2, True)
@@ -84,4 +87,4 @@ class Connect(Packet):
         self.payload = [self.fixed_header, self.toVariableByte("%x" % remaining_length), self.variable_header.toList(), self.connect_payload.toList()]
 
 if __name__ == "__main__":
-    packetTest([Connect], 300)
+    packetTest([Connect], 10)
