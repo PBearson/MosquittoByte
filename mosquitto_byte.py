@@ -11,6 +11,24 @@ import subprocess
 import difflib
 import threading
 
+sys.path.append("generators")
+from packet import sendToBroker
+from connect import Connect
+from publish import Publish
+from connack import Connack
+from auth import Auth
+from pingreq import Pingreq
+from pingresp import Pingresp
+from disconnect import Disconnect
+from puback import Puback
+from pubcomp import Pubcomp
+from pubrec import Pubrec
+from pubrel import Pubrel
+from suback import Suback
+from subscribe import Subscribe
+from unsuback import Unsuback
+from unsubscribe import Unsubscribe
+
 from os import path
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -428,6 +446,19 @@ def construct_payload(all_payloads):
         enumerated_payloads[s] = all_payloads[s]
     
     return (payload, enumerated_payloads)
+
+def generate_from_scratch():
+    packets = [Connect, Disconnect, Publish, Connack, Auth, Pingreq, Pingresp, Puback, Pubcomp, Pubrec, Pubrel, Suback, Subscribe, Unsuback, Unsubscribe]
+
+    protocol = random.randint(3, 5)
+    num_packets = random.randint(1, 3)
+    payload = Connect(protocol).toString()
+
+    for n in range(num_packets):
+        payload += random.choice(packets)(protocol).toString()
+
+    return bytearray.fromhex(payload)
+
     
 def fuzz_payloads(all_payloads, params):
     for a in all_payloads:
@@ -480,8 +511,11 @@ def fuzz(seed):
 
     # Don't source the fuzzer with anything
     if (c_len < 2 or not params["sourcing_from_crash"] == 0) and (nr_len < 2 or not params["sourcing_from_network"] == 0) and (fr_len < 2 or not params["sourcing_from_filestream"] == 0):
-        all_payloads = fuzz_payloads(get_all_payloads(), params)
-        payload, enumerated_payloads = construct_payload(all_payloads)
+        if random.randint(0, 1) == 0:
+            all_payloads = fuzz_payloads(get_all_payloads(), params)
+            payload, enumerated_payloads = construct_payload(all_payloads)
+        else:
+            payload = generate_from_scratch()
 
     # Source with previous crash
     elif c_len >= 2 and params["sourcing_from_crash"] == 0:
