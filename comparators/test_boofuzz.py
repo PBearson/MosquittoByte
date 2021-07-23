@@ -5,8 +5,6 @@ def main():
     port = 1883
     host = "127.0.0.1"
 
-    # csv_log = open("fuzz_results.csv", "wb")
-    # logger = [FuzzLoggerCsv(file_handle = csv_log)]
     connection = SocketConnection(host, port, proto = "tcp")
     proc = ProcessMonitor(host, 26002)
     proc_opts = ({
