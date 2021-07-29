@@ -1,4 +1,4 @@
-class Parser:
+class ProtocolParser:
 
     def insertByteNoIdentifier(self, fieldName, payload, index, use_G_field):
         return self.insertByte(fieldName, payload, index - 2, use_G_field)
@@ -205,6 +205,8 @@ class Parser:
     # This function just finds the properties substring within the payload
     # and passes that to parsePropertiesHelper().
     def parseProperties(self):
+        if len(self.payload[self.index:]) == 0:
+            return
         multiplier = 1
         propertyLength = 0
         while True:

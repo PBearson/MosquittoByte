@@ -1,4 +1,4 @@
-from parser import Parser
+from protocol_parser import ProtocolParser as Parser
 import sys
 sys.path.append("generators")
 
