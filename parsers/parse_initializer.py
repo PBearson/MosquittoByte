@@ -29,10 +29,13 @@ class ParseInitializer:
             '8': SubscribeParser,
             '9': SubackParser,
             'a': UnsubscribeParser,
-            'b', UnsubackParser,
-            'c', PingreqParser,
-            'd', PingrespParser,
+            'b': UnsubackParser,
+            'c': PingreqParser,
+            'd': PingrespParser,
             'e': DisconnectParser,
             'f': AuthParser}
 
-        self.parser = packetDict[payload[0]](payload, protocol_version)
+        if len(payload) > 0:
+            self.parser = packetDict[payload[0]](payload, protocol_version)
+        else:
+            self.parser = None
