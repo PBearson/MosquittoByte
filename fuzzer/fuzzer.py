@@ -14,6 +14,7 @@
 
 import sys
 sys.path.append("generators")
+sys.path.append("parsers")
 from packet import sendToBroker
 from connect import Connect
 from publish import Publish
@@ -30,13 +31,17 @@ from suback import Suback
 from subscribe import Subscribe
 from unsuback import Unsuback
 from unsubscribe import Unsubscribe
+
+from parse_initializer import ParseInitializer
+
+import binascii
 import pyradamsa
 import random
 import time
 import socket
 
-def sendShort(payload):
-    sendToBroker("localhost", 1883, payload)
+def sendShort(payload, port):
+    sendToBroker("localhost", port, payload)
 
 def testSocket(socket):
     try:
@@ -46,46 +51,112 @@ def testSocket(socket):
     except (ConnectionResetError, BrokenPipeError):
         return False
     return True
-        
 
-# def test
+def bytearrayToString(value):
+    return "".join(["%.02x" % r for r in value])
+
+# Given a full payload, return a list of individual packets
+# Do this by parsing the "remaining length" fields
+def full_payload_to_packets(payload, packets = []):
+        if len(payload) == 0:
+            return packets
+
+        index = 2
+        multiplier = 1
+        while True:
+            encodedByte = int(payload[index:index+2], 16)
+            index += 2
+            multiplier *= 128
+            if encodedByte & 128 == 0:
+                break
+
+        value = int(payload[2:index], 16)
+        payload_length = value*2 + 4
+        packet = payload[0:payload_length]
+        packets.append(packet)
+        return full_payload_to_packets(payload[payload_length:], packets)
 
 def run():
     rad = pyradamsa.Radamsa()
+    packet_headers = {
+        "2": "connack",
+        "3": "publish",
+        "4": "puback",
+        "5": "pubrec",
+        "6": "pubrel",
+        "7": "pubcomp",
+        "8": "subscribe",
+        "9": "suback",
+        "a": "unsubscribe",
+        "b": "unsuback",
+        "c": "pingreq",
+        "d": "pingresp",
+        "e": "disconnect",
+        "f": "auth"
+        }
     packets = [Connect, Disconnect, Publish, Connack, Auth, Pingreq, Pingresp, Puback, Pubcomp, Pubrec, Pubrel, Suback, Subscribe, Unsuback, Unsubscribe]
 
-    saved_payload = ""
-    saved_protocol = 0
-    attempts = 300
-    while True:
-        if len(saved_payload) == 0:
-            protocol = random.randint(3, 5)
-            payload = Connect(protocol).toString()
-            saved_protocol = protocol
-        else:
-            payload = saved_payload
-            nextPayload = random.choice(packets)(saved_protocol).toString()
-            payload += nextPayload
+    observed_gfields = {}
+    requests_queue = []
+
+    host = "localhost"
+    port = 1883
+
+    max_attempts = 1000
+
+    packets_index = 0
+    queue_selection = ""
+
+    attempts = max_attempts
+
+    while attempts > 0:
+        attempts -= 1
+
+        protocol_version = random.randint(3, 5)
+
+        request = Connect(protocol_version).toString()
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(("localhost", 1883))
-        s.send(bytearray.fromhex(payload))
-        if testSocket(s):
-            attempts = 300
-            saved_payload = payload
+        s.connect((host, port))
+        s.send(bytearray.fromhex(request))
+        try:
+            response = bytearrayToString(s.recv(1024))
             s.close()
-            print(len(saved_payload))
+        except ConnectionResetError:
+            continue
 
-        else:
-            attempts -= 1
-            if attempts == 0:
-                print("Fuzzing now")
-                attempts = 300
-                for j in range(500):
-                    fuzzed = rad.fuzz(bytearray.fromhex(saved_payload))
-                    sendShort(fuzzed)
+        responses = full_payload_to_packets(response, [])
 
-                saved_payload = ""
+        for r in responses:
+
+            packet_type = packet_headers[r[0]]
+            
+            parser = ParseInitializer(r, protocol_version).parser
+        
+            if parser is not None:
+                g_fields = parser.G_fields
+
+                if packet_type not in observed_gfields.keys():
+                    observed_gfields[packet_type] = {}
+
+                new_find = False
+                for (k, v) in g_fields.items():
+                    if k in observed_gfields[packet_type]:
+                        if v in observed_gfields[packet_type][k]:
+                            continue
+                        else:
+                            observed_gfields[packet_type][k].append(v)
+                            new_find = True
+                    else:
+                        observed_gfields[packet_type][k] = [v]
+                        new_find = True
+
+                if new_find:
+                    attempts = max_attempts
+                    requests_queue.append(request)
+    for o in observed_gfields:
+        print(o, observed_gfields[o])
+            
 
 if __name__ == "__main__":
     run()
