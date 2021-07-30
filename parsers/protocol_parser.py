@@ -146,7 +146,7 @@ class ProtocolParser:
                 index = self.insertTwoBytes("server keep alive", properties, index, False)
             
             if self.indexToByte(index, 1, properties) == '15':
-                index = self.insertString("authentication method", properties, index, True)
+                index = self.insertString("authentication method", properties, index, False)
 
             if self.indexToByte(index, 1, properties) == '16':
                 index = self.insertBinaryData("authentication data", properties, index, False)
@@ -167,7 +167,7 @@ class ProtocolParser:
                 index = self.insertString("server reference", properties, index, True)
 
             if self.indexToByte(index, 1, properties) == '1f':
-                index = self.insertString("reason string", properties, index, True)
+                index = self.insertString("reason string", properties, index, False)
             
             if self.indexToByte(index, 1, properties) == '21':
                 index = self.insertTwoBytes("receive maximum", properties, index, True)
