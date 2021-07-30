@@ -103,10 +103,9 @@ def run():
     port = 1883
     socket_timeout = 0.2
 
-    max_attempts = 1000
+    max_attempts = 100
 
     packets_index = 0
-    queue_selection = ""
 
     attempts = max_attempts
 
@@ -152,26 +151,25 @@ def run():
                         else:
                             observed_gfields[packet_type][k].append(v)
                             new_find = True
+                            print(packet_type, observed_gfields[packet_type])
                     else:
                         observed_gfields[packet_type][k] = [v]
                         new_find = True
+                        print(packet_type, observed_gfields[packet_type])
 
                 if new_find:
                     attempts = max_attempts
-                    requests_queue.append(request)
-                    print(observed_gfields)
+                    requests_queue.append([request, protocol_version])
     
     while len(requests_queue) > 0:
-        request = requests_queue.pop(0)
-        print("Request queue has size", len(requests_queue))
+        request, protocol_version = requests_queue.pop(0)
+        print("Requests left: ", len(requests_queue))
         
         for packet in packets:
             attempts = max_attempts
 
             while attempts > 0:
                 attempts -= 1
-
-                protocol_version = random.randint(3, 5)
 
                 new_request = request + packet(protocol_version).toString()
 
@@ -210,18 +208,16 @@ def run():
                                 else:
                                     observed_gfields[packet_type][k].append(v)
                                     new_find = True
+                                    print(packet_type, observed_gfields[packet_type])
                             else:
                                 observed_gfields[packet_type][k] = [v]
                                 new_find = True
+                                print(packet_type, observed_gfields[packet_type])
 
                         if new_find:
                             attempts = max_attempts
-                            requests_queue.append(new_request)
-                            print(observed_gfields)
+                            requests_queue.append([new_request, protocol_version])
 
-            
-
-            
 
 if __name__ == "__main__":
     run()
