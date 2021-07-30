@@ -101,6 +101,7 @@ def run():
 
     host = "localhost"
     port = 1883
+    socket_timeout = 0.2
 
     max_attempts = 1000
 
@@ -120,7 +121,7 @@ def run():
             request = bytearrayToString(rad.fuzz(bytearray.fromhex(request)))
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.2)
+        s.settimeout(socket_timeout)
         s.connect((host, port))
         s.send(bytearray.fromhex(request))
         try:
@@ -178,13 +179,13 @@ def run():
                     new_request = bytearrayToString(rad.fuzz(bytearray.fromhex(new_request)))
 
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.2)
+                s.settimeout(socket_timeout)
                 s.connect((host, port))
                 s.send(bytearray.fromhex(new_request))
                 try:
                     response = bytearrayToString(s.recv(1024))
                     s.close()
-                except ConnectionResetError:
+                except (ConnectionResetError, socket.timeout):
                     continue
 
                 responses = full_payload_to_packets(response, [])
