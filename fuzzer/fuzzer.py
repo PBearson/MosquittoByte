@@ -116,13 +116,17 @@ def run():
 
         request = Connect(protocol_version).toString()
 
+        if attempts % 2 == 0:
+            request = bytearrayToString(rad.fuzz(bytearray.fromhex(request)))
+
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.2)
         s.connect((host, port))
         s.send(bytearray.fromhex(request))
         try:
             response = bytearrayToString(s.recv(1024))
             s.close()
-        except ConnectionResetError:
+        except (ConnectionResetError, socket.timeout):
             continue
 
         responses = full_payload_to_packets(response, [])
@@ -154,8 +158,7 @@ def run():
                 if new_find:
                     attempts = max_attempts
                     requests_queue.append(request)
-
-    print(observed_gfields)
+                    print(observed_gfields)
     
     while len(requests_queue) > 0:
         request = requests_queue.pop(0)
@@ -171,7 +174,11 @@ def run():
 
                 new_request = request + packet(protocol_version).toString()
 
+                if attempts % 2 == 0:
+                    new_request = bytearrayToString(rad.fuzz(bytearray.fromhex(new_request)))
+
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(0.2)
                 s.connect((host, port))
                 s.send(bytearray.fromhex(new_request))
                 try:
