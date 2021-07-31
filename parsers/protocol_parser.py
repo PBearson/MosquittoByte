@@ -185,7 +185,7 @@ class ProtocolParser:
                 index = self.insertByte("retain available", properties, index, True)
 
             if self.indexToByte(index, 1, properties) == '26':
-                index = self.insertStringPair("user property", properties, index, True, False)
+                index = self.insertStringPair("user property", properties, index, False, False)
 
             if self.indexToByte(index, 1, properties) == '27':
                 index = self.insertFourBytes("maximum packet size", properties, index, True)
