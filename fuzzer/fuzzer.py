@@ -98,81 +98,83 @@ def run():
 
     observed_gfields = {}
     requests_queue = []
+    original_requests_queue = []
 
     host = "localhost"
     port = 1883
     socket_timeout = 0.2
 
-    max_attempts = 3
+    max_fuzz_attempts = 5
+    max_original_attempts = 5
 
-    packets_index = 0
-
-    attempts = max_attempts
-
-    while attempts > 0:
-        attempts -= 1
-
-        protocol_version = random.randint(3, 5)
-
-        request = Connect(protocol_version).toString()
-
-        if attempts % 2 == 0:
-            request = bytearrayToString(rad.fuzz(bytearray.fromhex(request)))
-
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(socket_timeout)
-        s.connect((host, port))
-        s.send(bytearray.fromhex(request))
-        try:
-            response = bytearrayToString(s.recv(1024))
-            s.close()
-        except (ConnectionResetError, socket.timeout):
-            continue
-
-        responses = full_payload_to_packets(response, [])
-
-        for r in responses:
-
-            packet_type = packet_headers[r[0]]
-            
-            parser = ParseInitializer(r, protocol_version).parser
-        
-            if parser is not None:
-                g_fields = parser.G_fields
-
-                if packet_type not in observed_gfields.keys():
-                    observed_gfields[packet_type] = {}
-
-                new_find = False
-                for (k, v) in g_fields.items():
-                    if k in observed_gfields[packet_type]:
-                        if v in observed_gfields[packet_type][k]:
-                            continue
-                        else:
-                            observed_gfields[packet_type][k].append(v)
-                            new_find = True
-                            print(packet_type, observed_gfields[packet_type])
-                    else:
-                        observed_gfields[packet_type][k] = [v]
-                        new_find = True
-                        print(packet_type, observed_gfields[packet_type])
-
-                if new_find:
-                    attempts = max_attempts
-                    requests_queue.append([request, protocol_version])
-    
-    original_requests_queue = requests_queue.copy()
+    cycles = 0
 
     while True:
-        print("Another run")
+        cycles += 1
+        max_fuzz_attempts *= 2
+        max_original_attempts *= 2
+        attempts = max_original_attempts
         requests_queue = original_requests_queue.copy()
+        print("Cycle: %d, Attempts: %d" % (cycles, max_fuzz_attempts))
 
+        while attempts > 0:
+            attempts -= 1
+
+            protocol_version = random.randint(3, 5)
+
+            request = Connect(protocol_version).toString()
+
+            if attempts % 2 == 0:
+                request = bytearrayToString(rad.fuzz(bytearray.fromhex(request)))
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(socket_timeout)
+            s.connect((host, port))
+            s.send(bytearray.fromhex(request))
+            try:
+                response = bytearrayToString(s.recv(1024))
+                s.close()
+            except (ConnectionResetError, socket.timeout):
+                continue
+
+            responses = full_payload_to_packets(response, [])
+
+            for r in responses:
+
+                packet_type = packet_headers[r[0]]
+                
+                parser = ParseInitializer(r, protocol_version).parser
+            
+                if parser is not None:
+                    g_fields = parser.G_fields
+
+                    if packet_type not in observed_gfields.keys():
+                        observed_gfields[packet_type] = {}
+
+                    new_find = False
+                    for (k, v) in g_fields.items():
+                        if k in observed_gfields[packet_type]:
+                            if v in observed_gfields[packet_type][k]:
+                                continue
+                            else:
+                                observed_gfields[packet_type][k].append(v)
+                                new_find = True
+                                print(packet_type, observed_gfields[packet_type])
+                        else:
+                            observed_gfields[packet_type][k] = [v]
+                            new_find = True
+                            print(packet_type, observed_gfields[packet_type])
+
+                    if new_find:
+                        requests_queue.append([request, protocol_version])
+                        original_requests_queue.append([request, protocol_version])
+        
         while len(requests_queue) > 0:
             request, protocol_version = requests_queue.pop(0)
             print("Requests left: ", len(requests_queue))
             
             for packet in packets:
-                attempts = max_attempts
+                attempts = max_fuzz_attempts
 
                 while attempts > 0:
                     attempts -= 1
@@ -221,8 +223,8 @@ def run():
                                     print(packet_type, observed_gfields[packet_type])
 
                             if new_find:
-                                attempts = max_attempts
                                 original_requests_queue.append([new_request, protocol_version])
+                                requests_queue.append([new_request, protocol_version])
 
 
 if __name__ == "__main__":
