@@ -98,24 +98,24 @@ def run():
 
     observed_gfields = {}
     requests_queue = []
-    original_requests_queue = []
+    seed_requests_queue = []
 
     host = "localhost"
     port = 1883
     socket_timeout = 0.2
 
     max_fuzz_attempts = 5
-    max_original_attempts = 5
+    max_seed_attempts = 50
 
     cycles = 0
 
     while True:
         cycles += 1
         max_fuzz_attempts *= 2
-        max_original_attempts *= 2
-        attempts = max_original_attempts
-        requests_queue = original_requests_queue.copy()
-        print("Cycle: %d, Attempts: %d" % (cycles, max_fuzz_attempts))
+        max_seed_attempts *= 2
+        attempts = max_seed_attempts
+        requests_queue = seed_requests_queue.copy()
+        print("Cycle: %d, Seed attempts: %d, Fuzz attempts: %d" % (cycles, max_seed_attempts, max_fuzz_attempts))
 
         while attempts > 0:
             attempts -= 1
@@ -167,7 +167,7 @@ def run():
 
                     if new_find:
                         requests_queue.append([request, protocol_version])
-                        original_requests_queue.append([request, protocol_version])
+                        seed_requests_queue.append([request, protocol_version])
         
         while len(requests_queue) > 0:
             request, protocol_version = requests_queue.pop(0)
@@ -223,7 +223,7 @@ def run():
                                     print(packet_type, observed_gfields[packet_type])
 
                             if new_find:
-                                original_requests_queue.append([new_request, protocol_version])
+                                seed_requests_queue.append([new_request, protocol_version])
                                 requests_queue.append([new_request, protocol_version])
 
 
